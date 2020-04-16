@@ -1,0 +1,1 @@
+source "$BR2_EXTERNAL_TECHNOLOGIC_PATH/package/ts7100-utils/Config.in"

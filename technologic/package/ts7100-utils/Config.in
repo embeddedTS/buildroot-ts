@@ -1,0 +1,7 @@
+config BR2_PACKAGE_TS7100_UTILS
+	bool "ts7100-utils"
+	depends on BR2_PACKAGE_LIBGPIOD
+	help
+	  Utilities tools for TS-7100 SBC.
+	  Includes tools to communicate with the supervisory microcontroller,
+	  the FPGA, and a TS-SILO monitor script
