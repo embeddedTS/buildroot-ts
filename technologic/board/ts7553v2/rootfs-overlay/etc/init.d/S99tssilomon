@@ -1,0 +1,38 @@
+#!/bin/sh
+#
+# Starts tssilomon daemon
+#
+
+umask 077
+
+start() {
+	printf "Starting tssilomon daemon: "
+	start-stop-daemon -S -q -m -p /var/run/tssilomon.pid -b --exec sh /usr/bin/tssilomon
+	echo "OK"
+}
+stop() {
+	printf "Stopping tssilomon daemon: "
+	start-stop-daemon -K -q -m -p /var/run/tssilomon.pid -b --exec sh /usr/bin/tssilomon
+	echo "OK"
+}
+restart() {
+	stop
+	start
+}
+
+case "$1" in
+  start)
+	start
+	;;
+  stop)
+	stop
+	;;
+  restart|reload)
+	restart
+	;;
+  *)
+	echo "Usage: $0 {start|stop|restart}"
+	exit 1
+esac
+
+exit $?
