@@ -22,6 +22,11 @@ This supports these defconfigs:
 	* Supports TS-7553-V2
 	* Generates a minimal Linux with hardware support (based on 4.9 kernel)
 	* Write to any boot device for the unit: USB, SD, eMMC, NFS, etc.
+* make ts7553v2_usbprod_defconfig
+	* Supports TS-7553-V2
+	* Generates a tar for use on a thumbdrive that runs a blast.sh script on the drive to rewrite and verify the media on the board. See the manual for information on this Production Mechanism.
+	* Outputs to buildroot/output/images/ts7553v2-usb-production-rootfs.tar.bz2
+	* Extract this to a USB drive with one partition, formatted either ext2/3/4 or fat32.
 
 
 For example, this will generate a minimal TS-7250-V3 image:
