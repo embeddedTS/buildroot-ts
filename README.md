@@ -1,6 +1,7 @@
 
 # Technologic Systems Buildroot
 
+## Build instructions
 This branch implements BR_EXTERNAL for Technologic systems products.  Currently this includes:
 
 * TS-7250-V3
@@ -24,3 +25,21 @@ For example, this will generate a minimal TS-7250-V3 image:
     git submodule update --init
     make ts7250v3_defconfig
     make
+
+## Using Docker
+Optionally, this can be built in a Docker container. The container is maintained in lock-step with this project and the upstream Buildroot submodule. Meaning it is possible to go back to a specific commit in history and get a valid environment for building in via Docker.
+
+The container is implemented as a simple front-end script, any arguments passed to the script will be passed directly to the root `buildroot-ts/` directory inside of the container. The first time the script is run, it will build the container so this may take additional time.
+
+For example, to use the TS-7250-V3 defconfig, open a menuconfig window, then start a build:
+
+    ./scripts/run_docker_buildroot.sh make ts7250v3_defconfig
+    ./scripts/run_docker_buildroot.sh make menuconfig
+    ./scripts/run_docker_buildroot.sh make
+
+### Notes on using Docker
+
+* Choose building either from the host workstation or Docker container, it is not recommended to mix and match. Do a `make clean` from one build system in order to be able to cleanly switch to another. Switching between the two without `make clean` in between will likely cause build issues
+* The `pwd` is mapped to `/work/` inside the container, with `$HOME` being set to `/work/`. Any changes made inside of `/work/` will be retained, any changes to the rest of the container filesystem will be lost once the container is exited
+* Most of our configs have ccache enabled though Buildroot. Normally, this lies at `~/.buildroot-ccache`. Inside the container however, the `buildroot-ts/` directory is set to `$HOME`. If relying on ccache in Buildroot, be sure to continually use the same build system to prevent excessive work
+* It's possible to enter the shell of the container by passing `bash` to the script, i.e. `./scripts/run_docker_buildroot.sh bash`
