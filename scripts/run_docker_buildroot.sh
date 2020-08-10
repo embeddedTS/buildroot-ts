@@ -13,10 +13,8 @@ if [ $(id -u) -eq 0 ]; then
 fi
 
 
-cd docker
-docker build --quiet --tag "buildroot-buildenv-$(git rev-parse --short=12 HEAD)" .
-cd ../
+docker build --quiet --tag "buildroot-buildenv-$(git rev-parse --short=12 HEAD)" docker/
 
 # build must run as a normal user
 # Overwrite $HOME to allow for buildroot ccache to work somewhat seamlessly
-docker run -it --volume $(pwd):/work -w /work -e HOME=/work --user $(id -u):$(id -g) buildroot-buildenv $@
+docker run -it --volume $(pwd):/work -w /work -e HOME=/work --user $(id -u):$(id -g) "buildroot-buildenv-$(git rev-parse --short=12 HEAD)" $@
