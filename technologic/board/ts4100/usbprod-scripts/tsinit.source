@@ -1,10 +1,20 @@
 # Prepare with:
-# mkimage -T script -C none -A arm -n 'usb boot' -d tsinit.source tsinit.ub
+# mkimage -T script -C none -A arm -n 'usb boot' -d tsinit.scr tsinit.ub
 
-env set ramdiskaddr 0x90000000;
+env set fdtaddr 0x82000000;
+env set ramdiskaddr 0x83000000;
 
 if test $model -eq '7553'; then
 	load usb 0:1 ${fdtaddr} /boot/imx6ul-ts7553v2${pcbrev}.dtb;
+elif test $model -eq '4100'; then
+	if load usb 0:1 ${fdtaddr} /boot/imx6ul-ts${model}-${baseboardid}.dtb
+		then echo "Baseboard ID $baseboardid detected"
+	else
+		echo "Booting default device tree"
+		load usb 0:1 ${fdtaddr} /boot/imx6ul-ts${model}.dtb;
+	fi
+elif test $model -eq '7180'; then
+	load usb 0:1 ${fdtaddr} /boot/imx6ul-ts7180.dtb;
 fi
 
 setenv bootargs ${cmdline_append};
