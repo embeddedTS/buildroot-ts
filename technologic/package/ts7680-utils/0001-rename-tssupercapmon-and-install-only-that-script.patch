@@ -1,0 +1,172 @@
+Author: Kris Bahnsen <kris@embeddedarm.com>
+Date:   Thu Sep 3 10:06:24 2020 -0700
+
+    scripts: Adjust TS-SILO script name and install
+
+    The current ts7680-utils repo is based around it specifically
+    using Debian with systemd. Thus, the Makefile installs systemd
+    scripts that should not go here in buildroot.
+
+    Additionally, the TS-SILO supercapacitor script in ts7680-utils
+    is named differently than all of the subsequent platforms that
+    also have these supercapacitors. Rename it to "tssilomon" so that
+    our supporting init package is compatible
+
+diff --git a/scripts/Makefile.am b/scripts/Makefile.am
+index abb5763..39fd129 100755
+--- a/scripts/Makefile.am
++++ b/scripts/Makefile.am
+@@ -1,9 +1 @@
+-bin_SCRIPTS = tssupercapmon tsincmac tsstartupscript
+-
+-# Note: This is a horrible abuse of autotools, but these services need to go to
+-# the /etc path to match existing setup
+-systemdservicedir = /etc/systemd/system/
+-systemdservice_SCRIPTS = tssetmac@.service tsstartup.service tssupercapmon.service tsswitch.service
+-
+-systemdnetdir = /etc/systemd/network/
+-systemdnet_SCRIPTS = eth0.1.link eth0.1.netdev eth0.1.network eth0.2.link eth0.2.netdev eth0.2.network switch.network vlan.network
++bin_SCRIPTS = tssilomon
+diff --git a/scripts/tssilomon b/scripts/tssilomon
+new file mode 100755
+index 0000000..3238fba
+--- /dev/null
++++ b/scripts/tssilomon
+@@ -0,0 +1,66 @@
++#!/bin/bash
++
++# SPDX-License-Identifier: BSD-2-Clause
++# Copyright (c) 2019, Technologic Systems Inc.
++
++# Due to observed issues in some power installations, the script below has the
++# following behavior:
++#   - Once every half second, read the POWER_FAIL bit
++#   - If POWER_FAIL, monitor pct through tsmicroctl once per half second.
++#   - If pct is less than the threshold -AND- POWER_FAIL has been asserted for
++#       at least two checks in a row, then reboot the system.
++# The above AND is necessary to not reboot on spurious power fail events
++
++# Conservative value to wait for until shutting down
++RESET_PCT=90
++
++echo 73 > /sys/class/gpio/export 2>/dev/null
++
++while true; do
++    power=$(cat /sys/class/gpio/gpio73/value)
++    if [ "${power}" -ne 0 ]; then
++
++        # Not all tsmicroctl builds support reporting the supercap charge level.
++        # In the case of this string not being set, then just assume the current
++        # level is 0 and spit information out to the logs.
++        eval "$(/usr/local/bin/tsmicroctl -i)"
++        if [ ! -z "${supercap_pct}" ]; then
++            echo "Supercapacitors at ${supercap_pct}"
++        else
++            echo "\'tsmicroctl\' does not support reading charge percentage!"
++            echo "Please update \'tsmicroctl\'!"
++            supercap_pct=0
++        fi
++
++        if [ "${supercap_pct}" -le $RESET_PCT ]; then
++            if [ "${power_failed}" -gt 0 ]; then
++                # Code can be added below in order to turn off power-hungry
++                # devices, or start other shutdown procedures required.
++                # For example:
++                # Turn off cell modem on DC:
++                #   echo 233 > /sys/class/gpio/export 2>/dev/null
++                #   echo low > /sys/class/gpio/gpio233/direction
++                #
++                # Disable relays
++                #   echo 210 > /sys/class/gpio/export 2>/dev/null
++                #   echo 211 > /sys/class/gpio/export 2>/dev/null
++                #   echo low > /sys/class/gpio/gpio210/direction
++                #   echo low > /sys/class/gpio/gpio211/direction
++                #
++                # The wall command can be removed if wanted.
++
++                wall The script /usr/local/bin/tssupercapmon has detected main power has been lost!  Shutting down safely to prevent filesystem damage
++
++		# Use reboot as it is more portable
++		reboot
++                exit
++            fi
++        fi
++        let power_failed=power_failed+1
++    else
++        power_failed=0
++    fi
++
++    sleep .5
++done
++
+diff --git a/scripts/tssupercapmon b/scripts/tssupercapmon
+deleted file mode 100755
+index 45cf4cd..0000000
+--- a/scripts/tssupercapmon
++++ /dev/null
+@@ -1,65 +0,0 @@
+-#!/bin/bash
+-
+-# SPDX-License-Identifier: BSD-2-Clause
+-# Copyright (c) 2019, Technologic Systems Inc.
+-
+-# Due to observed issues in some power installations, the script below has the
+-# following behavior:
+-#   - Once every half second, read the POWER_FAIL bit
+-#   - If POWER_FAIL, monitor pct through tsmicroctl once per half second.
+-#   - If pct is less than the threshold -AND- POWER_FAIL has been asserted for
+-#       at least two checks in a row, then reboot the system.
+-# The above AND is necessary to not reboot on spurious power fail events
+-
+-# Conservative value to wait for until shutting down
+-RESET_PCT=90
+-
+-echo 73 > /sys/class/gpio/export 2>/dev/null
+-
+-while true; do
+-    power=$(cat /sys/class/gpio/gpio73/value)
+-    if [ "${power}" -ne 0 ]; then
+-
+-        # Not all tsmicroctl builds support reporting the supercap charge level.
+-        # In the case of this string not being set, then just assume the current
+-        # level is 0 and spit information out to the logs.
+-        eval "$(/usr/local/bin/tsmicroctl -i)"
+-        if [ ! -z "${supercap_pct}" ]; then
+-            echo "Supercapacitors at ${supercap_pct}"
+-        else
+-            echo "\'tsmicroctl\' does not support reading charge percentage!"
+-            echo "Please update \'tsmicroctl\'!"
+-            supercap_pct=0
+-        fi
+-
+-        if [ "${supercap_pct}" -le $RESET_PCT ]; then
+-            if [ "${power_failed}" -gt 0 ]; then
+-                # Code can be added below in order to turn off power-hungry
+-                # devices, or start other shutdown procedures required.
+-                # For example:
+-                # Turn off cell modem on DC:
+-                #   echo 233 > /sys/class/gpio/export 2>/dev/null
+-                #   echo low > /sys/class/gpio/gpio233/direction
+-                #
+-                # Disable relays
+-                #   echo 210 > /sys/class/gpio/export 2>/dev/null
+-                #   echo 211 > /sys/class/gpio/export 2>/dev/null
+-                #   echo low > /sys/class/gpio/gpio210/direction
+-                #   echo low > /sys/class/gpio/gpio211/direction
+-                #
+-                # The wall command can be removed if wanted.
+-
+-                wall The script /usr/local/bin/tssupercapmon has detected main power has been lost!  Shutting down safely to prevent filesystem damage
+-
+-                shutdown -r now
+-                exit
+-            fi
+-        fi
+-        let power_failed=power_failed+1
+-    else
+-        power_failed=0
+-    fi
+-
+-    sleep .5
+-done
+- 
