@@ -12,3 +12,7 @@ choice
 	source "$BR2_EXTERNAL_TECHNOLOGIC_PATH/package/ts7100-utils/Config.in"
 	source "$BR2_EXTERNAL_TECHNOLOGIC_PATH/package/ts7553v2-utils/Config.in"
 endchoice
+
+menu "External Wireless Firmware"
+	source "$BR2_EXTERNAL_TECHNOLOGIC_PATH/package/wilc-firmware/Config.in"
+endmenu
