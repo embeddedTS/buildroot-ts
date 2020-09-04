@@ -13,6 +13,10 @@ choice
 	source "$BR2_EXTERNAL_TECHNOLOGIC_PATH/package/ts7553v2-utils/Config.in"
 endchoice
 
+menu "Scripts for Device Support"
+	source "$BR2_EXTERNAL_TECHNOLOGIC_PATH/package/tssilomon-init/Config.in"
+endmenu
+
 menu "External Wireless Firmware"
 	source "$BR2_EXTERNAL_TECHNOLOGIC_PATH/package/wilc-firmware/Config.in"
 endmenu
