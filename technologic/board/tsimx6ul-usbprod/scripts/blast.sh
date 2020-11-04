@@ -80,7 +80,7 @@ elif [ -e /mnt/usb/sdimage.dd.bz2 ] || [ -e /mnt/usb/sdimage.dd.xz ]; then
 
 		if [ -e /mnt/usb/sdimage.dd.md5 ]; then
 			EXPECTED=$(cut -f 1 -d ' ' /mnt/usb/sdimage.dd.md5)
-			ACTUAL=$(dd if=/dev/mmcblk0 bs=4M | dd bs=1 count="${BYTES}" | md5sum)
+			ACTUAL=$(head /dev/mmcblk0 -c "${BYTES}" | md5sum | cut -f 1 -d ' ')
 			if [ "$ACTUAL" != "$EXPECTED" ]; then
 				echo "mmcblk0 dd verify" >> /tmp/failed
 			fi
@@ -90,7 +90,7 @@ fi
 
 ### EMMC ###
 if [ -e /mnt/usb/emmcimage.tar.bz2 ] || [ -e /mnt/usb/emmcimage.tar.xz ]; then
-	echo "======= Writing eMMC card filesystem ========"
+	echo "======= Writing eMMC filesystem ========"
 	(
 
 # Don't touch the newlines or add tabs from here to EOF
@@ -160,7 +160,7 @@ elif [ -e /mnt/usb/emmcimage.dd.bz2 ] || [ -e /mnt/usb/emmcimage.dd.xz ]; then
 
 		if [ -e /mnt/usb/emmcimage.dd.md5 ]; then
 			EXPECTED=$(cut -f 1 -d ' ' /mnt/usb/emmcimage.dd.md5)
-			ACTUAL=$(dd if=/dev/mmcblk1 bs=4M | dd bs=1 count="${BYTES}" | md5sum)
+			ACTUAL=$(head /dev/mmcblk1 -c "${BYTES}" | md5sum | cut -f 1 -d ' ')
 			if [ "$ACTUAL" != "$EXPECTED" ]; then
 				echo "mmcblk1 dd verify" >> /tmp/failed
 			fi
@@ -169,7 +169,7 @@ elif [ -e /mnt/usb/emmcimage.dd.bz2 ] || [ -e /mnt/usb/emmcimage.dd.xz ]; then
 fi
 
 if [ -e /mnt/usb/u-boot.imx ]; then
-	echo "==========Writing new U-boot image =========="
+	echo "========== Writing new U-boot image =========="
 	(
 	echo 0 > /sys/block/mmcblk1boot0/force_ro
 	dd bs=512 seek=2 if=/mnt/usb/u-boot.imx of=/dev/mmcblk1boot0

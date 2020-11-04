@@ -5,7 +5,11 @@ env set fdtaddr 0x82000000;
 env set ramdiskaddr 0x83000000;
 
 if test $model -eq '7553'; then
-	load usb 0:1 ${fdtaddr} /boot/imx6ul-ts7553v2${pcbrev}.dtb;
+	if load usb 0:1 ${fdtaddr} /boot/imx6ul-ts7553v2${variant}.dtb
+		then echo "Booting from imx6ul-ts7553v2${variant}.dtb"
+	else echo "imx6ul-ts7553v2${variant}.dtb not found, using default device-tree"
+		load usb 0:1 ${fdtaddr} /boot/imx6ul-ts7553v2.dtb
+	fi
 elif test $model -eq '4100'; then
 	if load usb 0:1 ${fdtaddr} /boot/imx6ul-ts${model}-${baseboardid}.dtb
 		then echo "Baseboard ID $baseboardid detected"

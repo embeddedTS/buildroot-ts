@@ -1,0 +1,45 @@
+config BR2_PACKAGE_WILC_FIRMWARE
+	bool "Microchip ATWILC1000/ATWILC3000 Firmware"
+	help
+	  External firmware for ATWILC1000/ATWILC3000 devices.
+
+	  These binary blobs are provided directly from Microchip.
+	  Ideally, the firmware version should match driver version.
+	  Generally, the latest firmware would be acceptible. See
+	  the respective kernel for the driver version in order to
+	  match the firmware version.
+
+	  These will be installed to /lib/firmware/mchp/
+
+if BR2_PACKAGE_WILC_FIRMWARE
+
+choice
+	prompt "Firmware version"
+	default BR2_PACKAGE_WILC_FIRMWARE_15_4
+	help
+	  Select the firmware version
+
+
+config BR2_PACKAGE_WILC_FIRMWARE_15_4
+	bool "v15.4"
+
+config BR2_PACKAGE_WILC_FIRMWARE_15_3_1
+	bool "v15.3.1"
+
+config BR2_PACKAGE_WILC_FIRMWARE_15_3
+	bool "v15.3"
+
+config BR2_PACKAGE_WILC_FIRMWARE_15_2_1
+	bool "v15.2.1"
+
+config BR2_PACKAGE_WILC_FIRMWARE_15_2
+	bool "v15.2"
+
+config BR2_PACKAGE_WILC_FIRMWARE_15_1
+	bool "v15.1"
+
+config BR2_PACKAGE_WILC_FIRMWARE_15_0
+	bool "v15.0"
+
+endchoice
+endif

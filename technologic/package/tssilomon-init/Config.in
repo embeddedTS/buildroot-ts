@@ -1,0 +1,12 @@
+config BR2_PACKAGE_TSSILOMON_INIT
+	bool "Install init.d for controlling tssilomon script"
+	help
+	  The TS products that offer TS-SILO supercapacitor support
+	  will have a monitor daemon as part of their utilities
+	  repository.
+
+	  By default, the script is installed but does not have a
+	  startup process. Enabling this will add a SysV init style
+	  script to start and stop the daemon.
+
+	  It is installed as S99tssilomon
