@@ -15,10 +15,13 @@ if BR2_PACKAGE_WILC_FIRMWARE
 
 choice
 	prompt "Firmware version"
-	default BR2_PACKAGE_WILC_FIRMWARE_15_4
+	default BR2_PACKAGE_WILC_FIRMWARE_15_5
 	help
 	  Select the firmware version
 
+
+config BR2_PACKAGE_WILC_FIRMWARE_15_5
+	bool "v15.5"
 
 config BR2_PACKAGE_WILC_FIRMWARE_15_4
 	bool "v15.4"
