@@ -5,7 +5,9 @@
 ################################################################################
 
 # The version names are the release tags available in the repo
-ifeq ($(BR2_PACKAGE_WILC_FIRMWARE_15_4),y)
+ifeq ($(BR2_PACKAGE_WILC_FIRMWARE_15_5),y)
+WILC_FIRMWARE_VERSION = wilc_linux_15_5
+else ifeq ($(BR2_PACKAGE_WILC_FIRMWARE_15_4),y)
 WILC_FIRMWARE_VERSION = wilc_linux_15_4
 else ifeq ($(BR2_PACKAGE_WILC_FIRMWARE_15_3_1),y)
 WILC_FIRMWARE_VERSION = wilc_linux_15_3_1
