@@ -8,6 +8,7 @@ This branch implements BR_EXTERNAL for Technologic systems products.  Currently 
 * TS-7100 (via ts7250v3_defconfig)
 * TS-7250-V3
 * TS-7553-V2
+* TS-7840
 
 This supports these defconfigs:
 * make ts4100_defconfig
@@ -22,6 +23,10 @@ This supports these defconfigs:
 	* Supports TS-7553-V2
 	* Generates a minimal Linux with hardware support (based on 4.9 kernel)
 	* Write to any boot device for the unit: USB, SD, eMMC, NFS, etc.
+* make tsa38x_defconfig
+	* Supports TS-7840
+	* Generates a minimal Linux with hardware support (based on 5.10 kernel)
+	* Write to any boot device for the unit: USB, eMMC, SATA, NFS, etc.
 
 The following defconfigs are used to create bootable USB drives meant for production:
 * make ts7250v3_usbprod_defconfig
@@ -33,6 +38,11 @@ The following defconfigs are used to create bootable USB drives meant for produc
 	* Supports TS-4100 and TS-7553-V2
 	* Generates a tar for use on a thumbdrive that runs a blast.sh script on the drive to rewrite and verify the media on the board. See the respective product manual for information on this Production Mechanism.
 	* Outputs to buildroot/output/images/tsimx6ul-usb-production-rootfs.tar.bz2
+	* Extract this to a USB drive with one partition, formatted either ext2/3/4 or fat32.
+* make tsa38x_usbprod_defconfig
+	* Supports TS-7840
+	* Generates a tar for use on a thumbdrive that runs a blast.sh script on the drive to rewrite and verify the media on the board. See the respective product manual for information on this Production Mechanism.
+	* Outputs to buildroot/output/images/tsa38x-usb-production-rootfs-${DATESTAMP}.tar.xz
 	* Extract this to a USB drive with one partition, formatted either ext2/3/4 or fat32.
 
 
