@@ -59,6 +59,17 @@ This will output a Buildroot image built from the specified tag. The buildroot v
 
     git submodule update --init
 
+## Extra Packages
+
+The platform defconfig files are very basic configurations; providing support for the base hardware with no additional tools. We've created an `extra_packages_defconfig` that can be merged with any of the above defconfig files to provide additional packages that are more in-line with the stock images for our devices.
+
+Buildroot itself provides a script to merge and make the config file. Rather than running any of the above `make <platform>_defconfig` commands, instead run the merge script. For example, here is how to build the extra packages config for the TS-7553-V2:
+
+    ./buildroot/support/kconfig/merge_config.sh technologic/configs/extra_packages_defconfig technologic/configs/ts7553v2_defconfig
+    make
+
+Simply substitute out the platform defconfig for other devices. Note that each defconfig provided to the script overrides any values set in the previous defconfig if they conflict. It is recommended to pass the extra_packages_defconfig before the device defconfig so any conflicts result in favoring the known base configuration file.
+
 ## Using Docker
 Optionally, this can be built in a Docker container. The container is maintained in lock-step with this project and the upstream Buildroot submodule. Meaning it is possible to go back to a specific commit in history and get a valid environment for building in via Docker.
 
