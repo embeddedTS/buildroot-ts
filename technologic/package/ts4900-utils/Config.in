@@ -1,0 +1,6 @@
+config BR2_PACKAGE_TS4900_UTILS
+	bool "ts4900-utils"
+	help
+	  Utilities tools for TS-4900, TS-7970, and TS-7990
+	  Includes tools to communicate with the supervisory microcontroller,
+	  TS-SILO monitor script, and interface to FPGA
