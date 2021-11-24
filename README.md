@@ -7,6 +7,7 @@ This repository implements BR_EXTERNAL for embeddedTS products. Currently this i
 * TS-7100 (via ts7250v3_defconfig)
 * TS-7250-V3
 * TS-7553-V2
+* TS-7670
 * TS-7680
 * TS-7840
 * TS-7970
@@ -51,6 +52,7 @@ We will update the Buildroot release tag used as time goes on, we will only push
 | TS-7100 | [ts7250v3_defconfig](#ts7250v3_defconfig) | [ts7250v3_usbprod_defconfig](#ts7250v3_usbprod_defconfig) |
 | TS-7250-V3 | [ts7250v3_defconfig](#ts7250v3_defconfig) | [ts7250v3_usbprod_defconfig](#ts7250v3_usbprod_defconfig)  |
 | TS-7553-V2 | [ts7553v2_defconfig](#ts7553v2_defconfig) | [tsimx6ul_usbprod_defconfig](#tsimx6ul_usbprod_defconfig) |
+| TS-7670 | [ts7670_defconfig](#ts7670_defconfig) |  |
 | TS-7680 | [ts7680_defconfig](#ts7680_defconfig) |  |
 | TS-7840 | [tsa38x_defconfig](#tsa38x_defconfig) | [tsa38x_usbprod_defconfig](#tsa38x_usbprod_defconfig) |
 | TS-7970 | | [tsimx6_usbprod_defconfig](#tsimx6_usbprod_defconfig) |
@@ -83,6 +85,15 @@ Can be built with (See [Using Docker](#using-docker) for how to build in Docker 
 Can be built with (See [Using Docker](#using-docker) for how to build in Docker container):
 
 	make ts7553v2_defconfig all
+
+### ts7670_defconfig
+* Supports TS-7670 devices with PCB revision D or newer
+* Generates a minimal Linux with hardware support (based on 4.9 kernel)
+* Outputs `sdimage.img` which can be written to to SD or eMMC on the device.
+
+Can be built with (See [Using Docker](#using-docker) for how to build in Docker container):
+
+	make ts7670_defconfig all
 
 ### ts7680_defconfig
 * Supports TS-7680 devices

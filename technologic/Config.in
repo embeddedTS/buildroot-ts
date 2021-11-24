@@ -12,10 +12,11 @@ choice
 	source "$BR2_EXTERNAL_TECHNOLOGIC_PATH/package/ts4900-utils/Config.in"
 	source "$BR2_EXTERNAL_TECHNOLOGIC_PATH/package/ts7100-utils/Config.in"
 	source "$BR2_EXTERNAL_TECHNOLOGIC_PATH/package/ts7180-utils/Config.in"
+	source "$BR2_EXTERNAL_TECHNOLOGIC_PATH/package/ts7553v2-utils/Config.in"
+	source "$BR2_EXTERNAL_TECHNOLOGIC_PATH/package/ts7670-utils-linux4x/Config.in"
 	source "$BR2_EXTERNAL_TECHNOLOGIC_PATH/package/ts7680-utils/Config.in"
 	source "$BR2_EXTERNAL_TECHNOLOGIC_PATH/package/ts7800v2-utils/Config.in"
 	source "$BR2_EXTERNAL_TECHNOLOGIC_PATH/package/ts7820-utils/Config.in"
-	source "$BR2_EXTERNAL_TECHNOLOGIC_PATH/package/ts7553v2-utils/Config.in"
 endchoice
 
 menu "Scripts for Device Support"
@@ -25,5 +26,10 @@ endmenu
 menu "External Wireless Firmware"
 	source "$BR2_EXTERNAL_TECHNOLOGIC_PATH/package/wilc-firmware/Config.in"
 endmenu
+
+menu "Bootloader Binaries"
+	source "$BR2_EXTERNAL_TECHNOLOGIC_PATH/package/ts7670-uboot/Config.in"
+endmenu
+
 
 source "$BR2_EXTERNAL_TECHNOLOGIC_PATH/package/growpart/Config.in"

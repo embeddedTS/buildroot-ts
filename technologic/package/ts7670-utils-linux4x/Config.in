@@ -1,0 +1,7 @@
+config BR2_PACKAGE_TS7670_UTILS_LINUX4X
+	bool "ts7670-utils-linux4.x"
+	help
+	  Utilities tools for TS-7670 SBC for use with 4.x and newer kernels.
+
+	  Includes tools to communicate with the supervisory microcontroller,
+	  RTC NVRAM, and RS-485/MODBUS control.
