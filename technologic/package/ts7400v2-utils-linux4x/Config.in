@@ -1,0 +1,7 @@
+config BR2_PACKAGE_TS7400V2_UTILS_LINUX4X
+	bool "ts7400v2-utils-linux4.x"
+	help
+	  Utilities tools for TS-7400-V2 SBC for use with 4.x and newer kernels.
+
+	  Includes tools to communicate with the supervisory microcontroller,
+	  RTC NVRAM, and ADC helper.
