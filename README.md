@@ -33,17 +33,23 @@ The following defconfigs are used to create bootable USB drives meant for produc
 	* Supports TS-7250-V3 and TS-7100
 	* Generates a tar for use on a thumbdrive that runs a blast.sh script on the drive to rewrite and verify the media on the board.
 	* Outputs to buildroot/output/images/ts7250v3-usb-production-rootfs.tar.bz2
-	* Extract this to a USB drive with one partition, and a partition of either ext2/3/4 or fat32.
+	* Extract this to a USB drive with one partition, and a partition of either ext2/3/4 or FAT32.
+* make tsimx6_usbprod_defconfig
+	* Supports TS-4900, TS-7970, and TS-TPC-7990
+	* Generates a tar for use on a thumbdrive that runs a blast.sh script on the drive to rewrite and verify the media on the board. See the respective product manual for information on this Production Mechanism.
+	* Outputs to buildroot/output/images/tsimx6-usb-production-rootfs.tar.bz2
+	* Extract this to a USB drive with one partition, formatted either ext2/3 or FAT32 with an MBR partition table.
+
 * make tsimx6ul_usbprod_defconfig
 	* Supports TS-4100 and TS-7553-V2
 	* Generates a tar for use on a thumbdrive that runs a blast.sh script on the drive to rewrite and verify the media on the board. See the respective product manual for information on this Production Mechanism.
 	* Outputs to buildroot/output/images/tsimx6ul-usb-production-rootfs.tar.bz2
-	* Extract this to a USB drive with one partition, formatted either ext2/3/4 or fat32.
+	* Extract this to a USB drive with one partition, formatted either ext2/3 or FAT32 with an MBR partition table.
 * make tsa38x_usbprod_defconfig
 	* Supports TS-7840
 	* Generates a tar for use on a thumbdrive that runs a blast.sh script on the drive to rewrite and verify the media on the board. See the respective product manual for information on this Production Mechanism.
 	* Outputs to buildroot/output/images/tsa38x-usb-production-rootfs-${DATESTAMP}.tar.xz
-	* Extract this to a USB drive with one partition, formatted either ext2/3/4 or fat32.
+	* Extract this to a USB drive with one partition, formatted either ext2/3/4 or FAT32 with a GPT partition table.
 
 
 For example, this will generate a minimal TS-7250-V3 image:
