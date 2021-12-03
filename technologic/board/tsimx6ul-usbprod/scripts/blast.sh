@@ -1,193 +1,170 @@
 #!/bin/sh
 
-mkdir /mnt/sd
-mkdir /mnt/emmc
+# SPDX-License-Identifier: BSD-2-Clause
+# Copyright (c) 2021 - Technologic Systems
+
+# Edit these variables as needed. When porting, this should be all that
+# needs to change for a new platform. Should be.
+
+# Whole device device node path for eMMC. Assuming it is static each boot.
+EMMC_DEV="/dev/mmcblk1"
+# Partition prefix letter(s) for device node.
+# e.g. /dev/mmcblk0p1, part prefix is "p". /dev/sda1, part prefix is ""
+EMMC_PART_PREFIX="p"
+
+# Whole device device node path for SD. Assuming it is static each boot.
+SD_DEV="/dev/mmcblk0"
+# Partition prefix letter(s) for device node.
+# e.g. /dev/mmcblk0p1, part prefix is "p". /dev/sda1, part prefix is ""
+SD_PART_PREFIX="p"
+
+# U-Boot is stored on boot partitions of eMMC on platforms compatible with
+# this script.
+UBOOT_DEV="${EMMC_DEV}boot0"
+# The basename of the partition is needed as part of the update process in
+# order to unlock the boot partition for writing.
+UBOOT_BN=$(basename "${UBOOT_DEV}")
+
+
+# Create array of valid file names for each media type
+sdimage_tar="sdimage.tar.xz sdimage.tar.bz2 sdimage.tar.gz sdimage.tar"
+sdimage_img="sdimage.dd.xz sdimage.dd.bz2 sdimage.dd.gz sdimage.dd"
+sdimage="${sdimage_tar} ${sdimage_img}"
+emmcimage_tar="emmcimage.tar.xz emmcimage.tar.bz2 emmcimage.tar.gz emmcimage.tar"
+emmcimage_img="emmcimage.dd.xz emmcimage.dd.bz2 emmcimage.dd.gz emmcimage.dd"
+emmcimage="${emmcimage_tar} ${emmcimage_img}"
+uboot_img="u-boot.imx"
+
+# A space separated list of all potential accepted image names
+all_images="${sdimage} ${emmcimage} ${uboot_img}"
+
+
+# Once the device nodes/partitions and valid image names are established,
+# then source in the functions that handle the writing processes
+. /mnt/usb/blast_funcs.sh
+
 mkdir /tmp/logs
 
 echo 0 > /sys/class/leds/green-led/brightness
 echo 1 > /sys/class/leds/red-led/brightness
-### MicroSD ###
-if [ -e /mnt/usb/sdimage.tar.bz2 ] || [ -e /mnt/usb/sdimage.tar.xz ] ; then
-	echo "======= Writing SD card filesystem ========"
-
-	(
-# Don't touch the newlines or add tabs/spaces from here to EOF
-fdisk /dev/mmcblk0 <<EOF
-o
-n
-p
-1
 
 
-w
-EOF
-# </fdisk commands>
-		if [ $? != 0 ]; then
-			echo "fdisk mmcblk0" >> /tmp/failed
+
+
+# Our default automatic use of the blast functions
+# Rather than calling this function, the calls made here can be integrated
+# in to custom blast processes
+write_images() {
+
+### Check for and handle SD images
+# Order of search preferences handled by sdimage variable
+(
+	DID_SOMETHING=0
+	for NAME in ${sdimage_tar}; do
+		if [ -e "/mnt/usb/${NAME}" ]; then
+			untar_image "/mnt/usb/${NAME}" "${SD_DEV}" "${SD_PART_PREFIX}" "sd"
+			DID_SOMETHING=1
+			break
 		fi
+	done
 
-		mkfs.ext4 -O ^metadata_csum,^64bit /dev/mmcblk0p1 -q < /dev/null
-		if [ $? != 0 ]; then
-			echo "mke2fs mmcblk0" >> /tmp/failed
-		fi
-		mount /dev/mmcblk0p1 /mnt/sd/
-		if [ $? != 0 ]; then
-			echo "mount mmcblk0" >> /tmp/failed
-		fi
-
-		if [ -e /mnt/usb/sdimage.tar.bz2 ] ; then
-			bzcat /mnt/usb/sdimage.tar.bz2 | tar -x -C /mnt/sd
-			if [ $? != 0 ]; then
-				echo "tar mmcblk0" >> /tmp/failed
+	if [ ${DID_SOMETHING} -ne 1 ]; then
+		for NAME in ${sdimage_img}; do
+			if [ -e "/mnt/usb/${NAME}" ]; then
+				dd_image "/mnt/usb/${NAME}" "${SD_DEV}" "sd"
+				break
 			fi
-		else # It is an xz image
-			xzcat /mnt/usb/sdimage.tar.xz | tar -x -C /mnt/sd
-			if [ $? != 0 ]; then
-				echo "tar mmcblk0" >> /tmp/failed
+		done
+	fi
+
+	wait
+) &
+
+### Check for and handle eMMC images
+# Order of search preferences handled by emmcimage variable
+(
+	DID_SOMETHING=0
+	for NAME in ${emmcimage_tar}; do
+		if [ -e "/mnt/usb/${NAME}" ]; then
+			untar_image "/mnt/usb/${NAME}" "${EMMC_DEV}" "${EMMC_PART_PREFIX}" "emmc"
+			DID_SOMETHING=1
+			break
+		fi
+	done
+
+	if [ ${DID_SOMETHING} -ne 1 ]; then
+		for NAME in ${emmcimage_img}; do
+			if [ -e "/mnt/usb/${NAME}" ]; then
+				dd_image "/mnt/usb/${NAME}" "${EMMC_DEV}" "emmc"
+				break
 			fi
-		fi
-		sync
+		done
+	fi
 
-		if [ -e "/mnt/sd/md5sums.txt" ]; then
-			LINES=$(wc -l /mnt/sd/md5sums.txt  | cut -f 1 -d ' ')
-			if [ "${LINES}" = 0 ]; then
-				echo "==========MD5sum file blank==========="
-				echo "mmcblk0 md5sum file is blank" >> /tmp/failed
-			fi
-			# Drop caches so we have to reread all files
-			echo 3 > /proc/sys/vm/drop_caches
-			cd /mnt/sd/
-			md5sum -c md5sums.txt > /tmp/sd_md5sums
-			if [ $? != 0 ]; then
-				echo "==========SD VERIFY FAILED==========="
-				echo "mmcblk0 filesystem verify" >> /tmp/failed
-			fi
-			cd /
-		fi
+	wait
+) &
 
-		umount /mnt/sd/
-	) > /tmp/logs/sd-writefs 2>&1 &
-elif [ -e /mnt/usb/sdimage.dd.bz2 ] || [ -e /mnt/usb/sdimage.dd.xz ]; then
-	echo "======= Writing SD card disk image ========"
-	(
-		if [ -e /mnt/usb/sdimage.dd.bz2 ] ; then
-		  bzcat /mnt/usb/sdimage.dd.bz2 | dd bs=4M of=/dev/mmcblk0
-		  BYTES="$(bzcat /mnt/usb/sdimage.dd.bz2  | wc -c)"
-		else
-		  xzcat /mnt/usb/sdimage.dd.xz | dd bs=4M of=/dev/mmcblk0
-		  BYTES="$(xzcat /mnt/usb/sdimage.dd.xz | wc -c)"
-		fi
-
-		if [ -e /mnt/usb/sdimage.dd.md5 ]; then
-			EXPECTED=$(cut -f 1 -d ' ' /mnt/usb/sdimage.dd.md5)
-			ACTUAL=$(head /dev/mmcblk0 -c "${BYTES}" | md5sum | cut -f 1 -d ' ')
-			if [ "$ACTUAL" != "$EXPECTED" ]; then
-				echo "mmcblk0 dd verify" >> /tmp/failed
-			fi
-		fi
-	) > /tmp/logs/sd-writeimage 2>&1 &
-fi
-
-### EMMC ###
-if [ -e /mnt/usb/emmcimage.tar.bz2 ] || [ -e /mnt/usb/emmcimage.tar.xz ]; then
-	echo "======= Writing eMMC filesystem ========"
-	(
-
-# Don't touch the newlines or add tabs from here to EOF
-fdisk /dev/mmcblk1 <<EOF
-o
-n
-p
-1
-
-
-w
-EOF
-# </fdisk commands>
-		if [ $? != 0 ]; then
-			echo "fdisk mmcblk1" >> /tmp/failed
-		fi
-		mkfs.ext4 -O ^metadata_csum,^64bit /dev/mmcblk1p1 -q < /dev/null
-		if [ $? != 0 ]; then
-			echo "mke2fs mmcblk1" >> /tmp/failed
-		fi
-		mount /dev/mmcblk1p1 /mnt/emmc/
-		if [ $? != 0 ]; then
-			echo "mount mmcblk1" >> /tmp/failed
-		fi
-
-		if [ -e /mnt/usb/emmcimage.tar.bz2 ] ; then
-			bzcat /mnt/usb/emmcimage.tar.bz2 | tar -x -C /mnt/emmc
-			if [ $? != 0 ]; then
-				echo "tar mmcblk1" >> /tmp/failed
-			fi
-		else # It is an xz image
-			xzcat /mnt/usb/emmcimage.tar.xz | tar -x -C /mnt/emmc
-			if [ $? != 0 ]; then
-				echo "tar mmcblk1" >> /tmp/failed
-			fi
-		fi
-		sync
-
-		if [ -e "/mnt/emmc/md5sums.txt" ]; then
-			LINES=$(wc -l /mnt/emmc/md5sums.txt  | cut -f 1 -d ' ')
-			if [ "${LINES}" = 0 ]; then
-				echo "==========MD5sum file blank==========="
-				echo "mmcblk1 md5sum file is blank" >> /tmp/failed
-			fi
-			# Drop caches so we have to reread all files
-			echo 3 > /proc/sys/vm/drop_caches
-			cd /mnt/emmc/
-			md5sum -c md5sums.txt > /tmp/emmc_md5sums
-			if [ $? != 0 ]; then
-				echo "mmcblk1 filesystem verify" >> /tmp/failed
-			fi
-			cd /
-		fi
-
-		umount /mnt/emmc/
-	) > /tmp/logs/emmc-writefs 2>&1 &
-elif [ -e /mnt/usb/emmcimage.dd.bz2 ] || [ -e /mnt/usb/emmcimage.dd.xz ]; then
-	echo "======= Writing eMMC disk image ========"
-	(
-		if [ -e /mnt/usb/emmcimage.dd.bz2 ] ; then
-		  bzcat /mnt/usb/emmcimage.dd.bz2 | dd bs=4M of=/dev/mmcblk1
-		  BYTES=$(bzcat /mnt/usb/emmcimage.dd.bz2  | wc -c)
-		else
-		  xzcat /mnt/usb/emmcimage.dd.xz | dd bs=4M of=/dev/mmcblk1
-		  BYTES=$(xzcat /mnt/usb/emmcimage.dd.xz  | wc -c)
-		fi
-
-		if [ -e /mnt/usb/emmcimage.dd.md5 ]; then
-			EXPECTED=$(cut -f 1 -d ' ' /mnt/usb/emmcimage.dd.md5)
-			ACTUAL=$(head /dev/mmcblk1 -c "${BYTES}" | md5sum | cut -f 1 -d ' ')
-			if [ "$ACTUAL" != "$EXPECTED" ]; then
-				echo "mmcblk1 dd verify" >> /tmp/failed
-			fi
-		fi
-	) > /tmp/logs/emmc-writeimage 2>&1 &
-fi
-
-if [ -e /mnt/usb/u-boot.imx ]; then
+### U-Boot is unique to every platform and therefore the full process for it
+###   needs to be replicated and customized to each platform. Some parts of the
+###   following may be more re-usable than others
+if [ -e "/mnt/usb/${uboot_img}" ]; then
 	echo "========== Writing new U-boot image =========="
 	(
-	echo 0 > /sys/block/mmcblk1boot0/force_ro
-	dd bs=512 seek=2 if=/mnt/usb/u-boot.imx of=/dev/mmcblk1boot0
-	if [ -e /mnt/usb/u-boot.imx.md5 ]; then
-		BYTES=$(wc -c /mnt/usb/u-boot.imx)
-		EXPECTED=$(cut -f 1 -d ' ' /mnt/usb/u-boot.imx.md5)
-		ACTUAL=$(dd if=/dev/mmcblk1boot0 bs=4M | dd skip=2 bs=512 | dd bs=1 count="${BYTES}" | md5sum | cut -f 1 -d ' ')
-		if [ "${ACTUAL}" != "${EXPECTED}" ]; then
-			echo "mmcblk1boot0 dd verify" >> /tmp/failed
+		echo 0 > /sys/block/"${UBOOT_BN}"/force_ro
+		dd bs=512 seek=2 if=/mnt/usb/"${uboot_img}" of=/dev/"${UBOOT_BN}"
+		if [ -e "/mnt/usb/${uboot_img}.md5" ]; then
+			BYTES=$(wc -c /mnt/usb/"${uboot_img}")
+			EXPECTED=$(cut -f 1 -d ' ' /mnt/usb/"${uboot_img}".md5)
+			ACTUAL=$(dd if=/dev/"${UBOOT_BN}" bs=4M | dd skip=2 bs=512 | dd bs=1 count="${BYTES}" | md5sum | cut -f 1 -d ' ')
+			if [ "${ACTUAL}" != "${EXPECTED}" ]; then
+				echo "U-Boot dd verify" >> /tmp/failed
+			fi
 		fi
-	fi
 	) > /tmp/logs/u-boot-writeimage 2>&1 &
 fi
 
-sync
+
+}
+
+# This is our automatic capture of disk images
+capture_images() {
+	if [ -b "${SD_DEV}" ]; then
+        	capture_img_or_tar_from_disk "${SD_DEV}" "/mnt/usb" "sd"
+	fi
+
+	if [ -b "${EMMC_DEV}" ]; then
+        	capture_img_or_tar_from_disk "${EMMC_DEV}" "/mnt/usb" "emmc"
+	fi
+}
+
+# Check for any one of the valid image sources, if none exist, then start
+# the image capture process. Note that, if uboot_img exists, then no images
+# are captured. If it does not exist, the uboot_img is not captured as this
+# is something that is not really standard
+USB_HAS_VALID_IMAGES=0
+for NAME in ${all_images}; do
+	if [ -e "/mnt/usb/${NAME}" ]; then
+		USB_HAS_VALID_IMAGES=1
+	fi
+done
+
+if [ ${USB_HAS_VALID_IMAGES} -eq 0 ]; then
+	# Need to remount our base dir RW
+	mount -oremount,rw /mnt/usb
+	capture_images
+	mount -oremount,ro /mnt/usb
+else
+	write_images
+fi
+
+
+# Wait for all processes to complete
 wait
 
+
+
 (
+set +x
 # Blink green led if it works.  Blink red if bad things happened
 if [ ! -e /tmp/failed ]; then
 	echo 0 > /sys/class/leds/red-led/brightness
