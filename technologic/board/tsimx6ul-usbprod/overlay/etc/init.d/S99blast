@@ -21,7 +21,7 @@ start() {
 		mkdir /mnt/usb/ > /dev/null 2>&1
 		mount -o ro /dev/sd${x}1 /mnt/usb/
 		if [ -e /mnt/usb/blast.sh ]; then
-			/mnt/usb/blast.sh
+			/mnt/usb/blast.sh &
 			break;
 		fi
 	done
