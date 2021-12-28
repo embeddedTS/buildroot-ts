@@ -110,10 +110,13 @@ write_images() {
 if [ -e "/mnt/usb/${uboot_img}" ]; then
 	echo "========== Writing new U-boot image =========="
 	(
+		set -x
+
 		echo 0 > /sys/block/"${UBOOT_BN}"/force_ro
 		dd bs=512 seek=2 if=/mnt/usb/"${uboot_img}" of=/dev/"${UBOOT_BN}"
 		if [ -e "/mnt/usb/${uboot_img}.md5" ]; then
-			BYTES=$(wc -c /mnt/usb/"${uboot_img}")
+			# Cat is used so wc just has byte output
+			BYTES=$(cat /mnt/usb/"${uboot_img}" | wc -c)
 			EXPECTED=$(cut -f 1 -d ' ' /mnt/usb/"${uboot_img}".md5)
 			ACTUAL=$(dd if=/dev/"${UBOOT_BN}" bs=4M | dd skip=2 bs=512 | dd bs=1 count="${BYTES}" | md5sum | cut -f 1 -d ' ')
 			if [ "${ACTUAL}" != "${EXPECTED}" ]; then
