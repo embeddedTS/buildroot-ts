@@ -1,0 +1,7 @@
+config BR2_PACKAGE_TS7800V2_UTILS
+	bool "ts7800v2-utils"
+	select BR2_PACKAGE_PROCPS_NG
+	help
+	  Utilities tools for TS-7800-V2 SBC
+	  Includes tools to communicate with the FPGA, peripherals,
+	  and various helper scripts
