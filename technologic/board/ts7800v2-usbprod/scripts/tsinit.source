@@ -1,0 +1,13 @@
+# Prepare with:
+# mkimage -T script -C none -A arm -n 'usb boot' -d tsinit.scr tsinit.ub
+
+if test $board_name -eq 'TS-7800-V2'; then
+	load usb 0:1 ${fdt_addr_r} /boot/armada-385-ts7800-v2.dtb;
+else
+	echo "This board is not yet supported by this tool"
+	exit
+fi
+
+load usb 0:1 ${kernel_addr_r} /boot/zImage;
+load usb 0:1 ${ramdisk_addr_r} /boot/rootfs.cpio.uboot;
+bootz ${kernel_addr_r} ${ramdisk_addr_r} ${fdt_addr_r};
