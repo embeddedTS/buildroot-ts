@@ -123,7 +123,7 @@ write_images() {
 
 	if [ ${SATA_IMAGES} -eq 0 ]; then exit; fi
 
-        readlink /sys/class/block/$(basename "${SATA_DEV}") | grep sata >/dev/null || err_exit "SATA disk not found!"
+        readlink /sys/class/block/"$(basename ${SATA_DEV})" | grep sata >/dev/null || err_exit "SATA disk not found!"
 
 	DID_SOMETHING=0
 	for NAME in ${sataimage_tar}; do
@@ -154,29 +154,34 @@ if [ -e "/mnt/usb/${uboot_img}" ]; then
 	(
 		set -x
 
-		BOARD_IMX_TYPE=$(dd if="${UBOOT_DEV}" bs=1024 skip=1 count=512 2>/dev/null | strings | grep -A1 "imx_type" | tail -n1)
-		IMAGE_IMX_TYPE=$(dd if=/mnt/usb/"${uboot_img}" 2>/dev/null  | strings | grep -A1 "imx_type" | tail -n1)
+		eval "$(dd if=${UBOOT_DEV} bs=1024 skip=1 count=512 2>/dev/null | strings | grep imx_type)"
+		if [ -z "${imx_type}" ]; then err_exit "Unable to detect imx_type in flash!"; fi
+		BOARD_IMX_TYPE="${imx_type}"
+
+
+		eval "$(strings /mnt/usb/${uboot_img} | grep imx_type)"
+		if [ -z "${imx_type}" ]; then err_exit "Unable to detect imx_type in image file!"; fi
+		IMAGE_IMX_TYPE="${imx_type}"
 
 		if [ "$BOARD_IMX_TYPE" != "$IMAGE_IMX_TYPE" ]; then
 			err_exit "IMX_TYPE $BOARD_IMX_TYPE and $IMAGE_IMX_TYPE didn't match. Writing this may brick the device or cause instability. Refusing to write U-Boot!"
 		else
-			dd if=/mnt/usb/"${uboot_img}" of="${UBOOT_DEV}" bs=1024 seek=1 || err_exit "U-Boot write failed"
+			dd if=/mnt/usb/"${uboot_img}" of="${UBOOT_DEV}" bs=1024 seek=1 conv=fsync || err_exit "U-Boot write failed"
 			if [ -e /mnt/usb/"${uboot_img}".md5 ]; then
 				sync
 				# Flush any buffer cache
 				echo 3 > /proc/sys/vm/drop_caches
 
-				# Cat is used so wc just has byte output
-				BYTES=$(cat /mnt/usb/"${uboot_img}" | wc -c)
-				EXPECTED=$(cat /mnt/usb/"${uboot_img}".md5 | cut -f 1 -d ' ')
+				BYTES=$(wc -c /mnt/usb/"${uboot_img}" | cut -d ' ' -f 1)
+				EXPECTED=$(cut -f 1 -d ' ' /mnt/usb/"${uboot_img}".md5)
 
 				# Read back from spi flash
 				TMPFILE=$(mktemp)
-				TMPFILE2=$(mktemp)
-				dd if="${UBOOT_DEV}" of="${TMPFILE}" bs=1024 skip=1 count=$((${BYTES}/1024)) 2> /dev/null
-				# truncate extra from last block
-				dd if="${TMPFILE}" of="${TMPFILE2}" bs=1 count="${BYTES}" 2> /dev/null
-				UBOOT_FLASH=$(md5sum "${TMPFILE2}" | cut -f 1 -d ' ')
+
+				# Realistically, using a bs of 1 does not have
+				# a huge impact on time to read
+				dd if="${UBOOT_DEV}" bs=1 skip=1024 count="${BYTES}" of="${TMPFILE}"
+				UBOOT_FLASH=$(md5sum "${TMPFILE}" | cut -f 1 -d ' ')
 
 				if [ "$UBOOT_FLASH" != "$EXPECTED" ]; then
 					err_exit "U-Boot verify failed"
@@ -202,8 +207,8 @@ capture_images() {
 
 	# Only capture an image from SATA if SATA_DEV is a SATA device
 	# and the device node is a block device.
-        readlink /sys/class/block/$(basename "${SATA_DEV}") | grep sata >/dev/null
-	if [ $? -eq 0 -a -b "${SATA_DEV}" ]; then
+        readlink /sys/class/block/"$(basename ${SATA_DEV})" | grep sata >/dev/null
+	if [ $? -eq 0 ] && [ -b "${SATA_DEV}" ]; then
         	capture_img_or_tar_from_disk "${SATA_DEV}" "/mnt/usb" "sata"
 	fi
 }
