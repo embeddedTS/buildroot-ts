@@ -1,0 +1,39 @@
+# Prepare with:
+# mkimage -T script -C none -A arm -n 'usb boot' -d tsinit.scr tsinit.ub
+
+env set ramdiskaddr 0x14000000;
+
+if test $model -eq '7990'; then
+	if load usb 0:1 ${loadaddr} /boot/ts7990-fpga.vme; then
+		fpga load 0 ${loadaddr} ${filesize};
+	fi;
+	if test ${pcbrev} != 'a'; then
+		load usb 0:1 ${fdtaddr} /boot/imx6${cpu}-ts7990-${lcd}-revb.dtb;
+	else
+		load usb 0:1 ${fdtaddr} /boot/imx6${cpu}-ts7990-${lcd}.dtb;
+	fi;
+fi;
+
+if test $model -eq '7970'; then
+	if load usb 0:1 ${loadaddr} /boot/ts7970-fpga.vme; then
+		fpga load 0 ${loadaddr} ${filesize};
+	fi;
+	load usb 0:1 ${fdtaddr} /boot/imx6${cpu}-ts7970.dtb;
+fi;
+
+if test  $model -eq '4900'; then
+	load usb 0:1 ${loadaddr} /boot/ts4900-fpga.bin;
+	ice40 ${loadaddr} ${filesize};
+
+	bbdetect;
+	if load usb 0:1 ${fdtaddr} /boot/imx6${cpu}-ts4900-${baseboardid}.dtb; then
+		echo "Loaded ${baseboardid} dtb";
+	else
+		load usb 0:1 ${fdtaddr} /boot/imx6${cpu}-ts4900.dtb;
+		echo "Loaded fallback dtb";
+	fi;
+fi;
+
+load usb 0:1 ${loadaddr} /boot/uImage;
+load usb 0:1 ${ramdiskaddr} /boot/rootfs.cpio.uboot;
+bootm ${loadaddr} ${ramdiskaddr} ${fdtaddr};
