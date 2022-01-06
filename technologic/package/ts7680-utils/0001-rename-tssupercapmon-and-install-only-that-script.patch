@@ -1,4 +1,4 @@
-Author: Kris Bahnsen <kris@embeddedarm.com>
+Author: Kris Bahnsen <kris@embeddedTS.com>
 Date:   Thu Sep 3 10:06:24 2020 -0700
 
     scripts: Adjust TS-SILO script name and install
@@ -36,7 +36,7 @@ index 0000000..3238fba
 +#!/bin/bash
 +
 +# SPDX-License-Identifier: BSD-2-Clause
-+# Copyright (c) 2019, Technologic Systems Inc.
++# Copyright (c) 2019-2022 Technologic Systems, Inc. dba embeddedTS
 +
 +# Due to observed issues in some power installations, the script below has the
 +# following behavior:

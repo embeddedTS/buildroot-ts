@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # SPDX-License-Identifier: BSD-2-Clause
-# Copyright (c) 2021 - Technologic Systems
+# Copyright (c) 2021-2022 Technologic Systems, Inc. dba embeddedTS
 
 # Edit these variables as needed. When porting, this should be all that
 # needs to change for a new platform. Should be.

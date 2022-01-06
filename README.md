@@ -1,8 +1,8 @@
 
-# Technologic Systems Buildroot
+# embeddedTS Buildroot
 
 ## Build instructions
-This branch implements BR_EXTERNAL for Technologic systems products.  Currently this includes:
+This branch implements BR_EXTERNAL for embeddedTS products.  Currently this includes:
 
 * TS-4100
 * TS-7100 (via ts7250v3_defconfig)
@@ -54,7 +54,7 @@ The following defconfigs are used to create bootable USB drives meant for produc
 
 For example, this will generate a minimal TS-7250-V3 image:
 
-    git clone https://github.com/embeddedarm/buildroot-ts.git
+    git clone https://github.com/embeddedTS/buildroot-ts.git
     cd buildroot-ts
     git submodule update --init
     make ts7250v3_defconfig

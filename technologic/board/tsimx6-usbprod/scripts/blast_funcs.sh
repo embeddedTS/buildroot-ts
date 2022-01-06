@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # SPDX-License-Identifier: BSD-2-Clause
-# Copyright (c) 2021 - Technologic Systems
+# Copyright (c) 2021-2022 Technologic Systems, Inc. dba embeddedTS
 
 err_exit() {
 	echo "${1}" >> /tmp/failed

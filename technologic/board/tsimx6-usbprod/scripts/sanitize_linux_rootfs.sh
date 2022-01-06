@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # SPDX-License-Identifier: BSD-2-Clause
-# Copyright (c) 2017-2021 - Technologic Systems
+# Copyright (c) 2017-2022 Technologic Systems, Inc. dba embeddedTS
 
 # WARNING! READ BEFORE USING THIS SCRIPT!
 # 
@@ -13,7 +13,7 @@
 # all image files produced by this script should be throughly checked before
 # being officially released.
 #
-# Technologic Systems assumes no responsibility for the end use of this script.
+# embeddedTS assumes no responsibility for the end use of this script.
 
 # This script is based on our usual prep_customer_image scripts in the device's
 # utilities repository. It has been modified to only really sanitize/prepare
