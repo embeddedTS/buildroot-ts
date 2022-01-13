@@ -160,7 +160,7 @@ write_images() {
 	DID_SOMETHING=0
 	for NAME in ${sdimage_tar}; do
 		if [ -e "/mnt/usb/${NAME}" ]; then
-			untar_image "/mnt/usb/${NAME}" "${SD_DEV}" "${SD_PART_PREFIX}" "sd"
+			untar_image "/mnt/usb/${NAME}" "${SD_DEV}" "${SD_PART_PREFIX}" "sd" "ext4"
 			DID_SOMETHING=1
 			break
 		fi
@@ -184,7 +184,7 @@ write_images() {
 	DID_SOMETHING=0
 	for NAME in ${emmcimage_tar}; do
 		if [ -e "/mnt/usb/${NAME}" ]; then
-			untar_image "/mnt/usb/${NAME}" "${EMMC_DEV}" "${EMMC_PART_PREFIX}" "emmc"
+			untar_image "/mnt/usb/${NAME}" "${EMMC_DEV}" "${EMMC_PART_PREFIX}" "emmc" "ext4"
 			DID_SOMETHING=1
 			break
 		fi
