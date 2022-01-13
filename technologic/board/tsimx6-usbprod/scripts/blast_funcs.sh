@@ -65,6 +65,13 @@ get_stream_decomp() {
 # 3) Dest. part prefix, e.g. for /dev/sdb1, part prefix is "", for /dev/mmcblk1p1
 #      part prefix is "p"
 # 4) Human readable part name, e.g. "sd", "emmc", "sata" Used for logging
+# 5) Filesystem type [optional]
+#      May be one of:
+#      ext3
+#      ext4compat [default] (This adds the options ^metadata_csum,^64bit to ext4
+#                            which is needed on older U-Boot versions that don't
+#                            support these options of ext4)
+#      ext4
 # Use
 # untar_image "/path/sdimage.tar.xz" "/dev/mmcblk1" "p" "sd"
 
@@ -75,6 +82,7 @@ untar_image() {
 	DST_DEV_PART=${2}${3}
 	DST_MOUNT=$(mktemp -d)
 	HUMAN_NAME=${4}
+	FILESYSTEM="${5:-ext4compat}"
 	
 	echo "======= Writing ${HUMAN_NAME} filesystem ========"
 
@@ -94,10 +102,27 @@ untar_image() {
 		parted -s -a optimal "${DST_DEV}" mklabel msdos || err_exit "mklabel ${DST_DEV}"
 		parted -a optimal "${DST_DEV}" mkpart primary ext4 4MiB 100% || err_exit "mkpart ${DST_DEV}"
 
-		# U-Boot on compatible platforms does not support the checksum
-		# and 64bit attrbites of ext4. Turn these off when making
-		# the filesystem
-		mkfs.ext4 -O ^metadata_csum,^64bit "${DST_DEV_PART}"1 -q -F || err_exit "mke2fs ${DST_DEV}"
+		case "${FILESYSTEM}" in
+			"ext2")
+				CMD="mkfs.ext2"
+				;;
+			"ext3")
+				CMD="mkfs.ext3"
+				;;
+			# U-Boot on compatible platforms does not support the
+			# checksum and 64bit attrbites of ext4. Turn these off
+			# when making the filesystem
+			"ext4compat")
+				CMD="mkfs.ext4 -O ^metadata_csum,^64bit"
+				;;
+			"ext4")
+				CMD="mkfs.ext4"
+				;;
+			*)
+				err_exit "invalid filesystem ${FILESYSTEM} on ${HUMAN_NAME}"
+				;;
+		esac
+		${CMD} "${DST_DEV_PART}"1 -q -F || err_exit "mke2fs ${DST_DEV}"
 		mount "${DST_DEV_PART}"1 "${DST_MOUNT}" || err_exit "mount ${DST_DEV}"
 
 		CMD=$(get_stream_decomp "${SRC_TARBALL}")
