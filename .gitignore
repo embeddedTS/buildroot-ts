@@ -2,3 +2,4 @@
 .buildroot-ccache/
 .viminfo
 .wget-hsts
+out/
