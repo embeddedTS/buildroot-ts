@@ -1,0 +1,13 @@
+config BR2_PACKAGE_GROWPART
+	bool "growpart"
+	select BR2_PACKAGE_UTIL_LINUX_BINARIES
+	help
+	  Script to automatically resize a partition.
+
+	  This has the advantage of being able to run every time, if the disk
+	  cannot reasonably be expanded, the command will indicate so via return.
+	  This allows for it to be run safely every boot and only actually affect
+	  a disk on first run.
+
+	  growpart is provided as a script in the toolset cloud-utils. This
+	  package installs just the growpart script and none of the other tools.

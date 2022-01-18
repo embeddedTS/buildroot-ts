@@ -25,3 +25,5 @@ endmenu
 menu "External Wireless Firmware"
 	source "$BR2_EXTERNAL_TECHNOLOGIC_PATH/package/wilc-firmware/Config.in"
 endmenu
+
+source "$BR2_EXTERNAL_TECHNOLOGIC_PATH/package/growpart/Config.in"
