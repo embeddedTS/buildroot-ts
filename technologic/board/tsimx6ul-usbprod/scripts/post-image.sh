@@ -15,6 +15,20 @@ cp "${BR2_EXTERNAL_TECHNOLOGIC_PATH}"/board/usbprod-common/scripts/blast_funcs.s
 cp "${BR2_EXTERNAL_TECHNOLOGIC_PATH}"/board/usbprod-common/scripts/sanitize_linux_rootfs.sh "${TEMPDIR}/"
 
 # Create output tarball
-tar cjf "${BINARIES_DIR}"/tsimx6ul-usb-production-rootfs.tar.bz2 -C "${TEMPDIR}" .
+tar cjf "${BINARIES_DIR}"/tsimx6ul-usb-image-replicator-rootfs.tar.bz2 -C "${TEMPDIR}" .
 
-rm -r "$TEMPDIR"
+# Create output image
+# Based on genimage.sh from Buildroot
+
+GENIMAGE_TMP="${BUILD_DIR}/genimage.tmp"
+rm -rf "${GENIMAGE_TMP}"
+
+genimage \
+  --rootpath "${TEMPDIR}" \
+  --tmppath "${GENIMAGE_TMP}" \
+  --inputpath "${BINARIES_DIR}" \
+  --outputpath "${BINARIES_DIR}" \
+  --config ""${BR2_EXTERNAL_TECHNOLOGIC_PATH}"/board/tsimx6ul-usbprod/scripts/genimage.cfg"
+
+
+rm -r "${TEMPDIR}"
