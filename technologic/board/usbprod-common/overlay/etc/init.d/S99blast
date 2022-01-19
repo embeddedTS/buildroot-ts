@@ -6,10 +6,8 @@
 umask 077
 
 start() {
-	echo "Starting USB blast process"
-
 	# Some platforms may not show USB devices right away. Arbitrary timeout.
-	echo "Sleeping for 10 seconds before attempting to discover USB devices."
+	echo "Sleeping for 10 seconds before attempting to discover USB devices..."
 	sleep 10
 
 	# Search for first usb drive with a blast.sh script
@@ -21,7 +19,54 @@ start() {
 		mkdir /mnt/usb/ > /dev/null 2>&1
 		mount -o ro /dev/sd${x}1 /mnt/usb/
 		if [ -e /mnt/usb/blast.sh ]; then
-			/mnt/usb/blast.sh &
+			# First, source the script in to this shell and
+			# start the LED blinking process
+			. /mnt/usb/blast.sh
+			led_init &
+
+			# Next, attempt to expand USB disk's first partition
+			printf "Attempting to re-size USB disk first partition: "
+			if [ ! -e /bin/growpart ]; then
+				echo "FAIL (growpart not found)"
+				echo "growpart not found" >> /tmp/failed
+			fi
+			TMP=$(mktemp)
+			growpart /dev/sd"${x}" 1 >"${TMP}" 2>&1
+			RET=$?
+			if [ ${RET} = 0 ]; then
+				echo "OK"
+				printf "Attempting to expand filesystem: "
+				# Partition needs to be RW for on-line resize
+				# There are other quirks with resizing off-line
+				# that cause it to not work in some cases. On-line
+				# resizing has been observed to work always.
+				mount -oremount,rw /dev/sd"${x}"1 /mnt/usb/
+				resize2fs /dev/sd"${x}"1 >>"${TMP}" 2>&1
+				RESIZE=$?
+				if [ ${RESIZE} = 0 ]; then
+					echo "OK"
+				else
+					echo "FAIL (see ${TMP} for details"
+					echo "resize2fs of USB disk failed" >> /tmp/failed
+				fi
+				mount -o remount,ro /dev/sd"${x}"1 /mnt/usb/
+			elif [ ${RET} = 1 ]; then
+				echo "NOT NEEDED"
+			else
+				echo "FAIL (see ${TMP} for details)"
+				echo "growpart of USB disk failed" >> /tmp/failed
+			fi
+
+			# Now, if there were no failures, run blast.
+			if [ ! -e /tmp/failed ]; then
+				echo "Starting image replication..."
+				# The blast.sh script was sourced earlier above
+				# and we can just call the main function
+				blast_run &
+			else
+				echo "One or more startup steps failed!"
+				echo "See ${TMP} for details"
+			fi
 			break;
 		fi
 	done

@@ -293,3 +293,50 @@ capture_img_or_tar_from_disk() {
 	) > /tmp/logs/"${NAME}"-capture 2>&1
 
 }
+
+### Blink the LEDs in a loop based on status markers
+# Currently only has three states, running [default], completed, and failed
+# The markers are /tmp files names /tmp/failed and /tmp/completed
+# In general, either the startup scripts should run this, or, if that
+# doesn't make sense, then blash.sh can start it.
+# The blast.sh file should have an led_init() function define that
+# defines the following functions
+# redled_on, redled_off, grnled_on, grnled_off
+# and then calls this loop. The toplevel call to led_init() should be
+# backgrounded.
+# The /tmp/completed file should always be created at the end of blast.sh
+# to denote the process is done. However, if /tmp/failed is created along
+# the way then the blink pattern for that will take precedence
+#
+# An example of how to set up the led_init() function:
+## led_init() {
+##	redled_on() { <command> ; }
+##	redled_off() { <command> ; }
+##	grnled_on() { <command> ; }
+##	grnled_off() { <command> ; }
+##
+##	led_blinkloop
+## }
+led_blinkloop() {
+	while true; do
+		if [ -e /tmp/failed ]; then
+			grnled_off
+			redled_on
+			sleep 1
+			redled_off
+			sleep 1
+		elif [ -e /tmp/completed ]; then
+			redled_off
+			grnled_on
+			sleep 1
+			grnled_off
+			sleep 1
+		else # Running state
+			redled_on
+			grnled_on
+			sleep 0.25
+			grnled_off
+			sleep 1
+		fi
+	done
+}
