@@ -42,17 +42,22 @@ uboot_img="u-boot.imx"
 # A space separated list of all potential accepted image names
 all_images="${sdimage} ${emmcimage} ${sataimage} ${uboot_img}"
 
+# Set up LED definitions, this needs to happen before blast_funcs.sh is sourced
+led_init() {
+        grnled_on() { echo 1 > /sys/class/leds/green-led/brightness ; }
+        grnled_off() { echo 0 > /sys/class/leds/green-led/brightness ; }
+        redled_on() { echo 1 > /sys/class/leds/red-led/brightness ; }
+        redled_off() { echo 0 > /sys/class/leds/red-led/brightness ; }
+
+        led_blinkloop
+}
+
 
 # Once the device nodes/partitions and valid image names are established,
 # then source in the functions that handle the writing processes
 . /mnt/usb/blast_funcs.sh
 
 mkdir /tmp/logs
-
-echo 0 > /sys/class/leds/green-led/brightness
-echo 1 > /sys/class/leds/red-led/brightness
-
-
 
 
 # Our default automatic use of the blast functions
@@ -213,53 +218,39 @@ capture_images() {
 	fi
 }
 
-# Check for any one of the valid image sources, if none exist, then start
-# the image capture process. Note that, if uboot_img exists, then no images
-# are captured. If it does not exist, the uboot_img is not captured as this
-# is something that is not really standard
-USB_HAS_VALID_IMAGES=0
-for NAME in ${all_images}; do
-	if [ -e "/mnt/usb/${NAME}" ]; then
-		USB_HAS_VALID_IMAGES=1
+blast_run() {
+	# Check for any one of the valid image sources, if none exist, then start
+	# the image capture process. Note that, if uboot_img exists, then no images
+	# are captured. If it does not exist, the uboot_img is not captured as this
+	# is something that is not really standard
+	USB_HAS_VALID_IMAGES=0
+	for NAME in ${all_images}; do
+		if [ -e "/mnt/usb/${NAME}" ]; then
+			USB_HAS_VALID_IMAGES=1
+		fi
+	done
+
+	if [ ${USB_HAS_VALID_IMAGES} -eq 0 ]; then
+		# Need to remount our base dir RW
+		mount -oremount,rw /mnt/usb
+		capture_images
+		mount -oremount,ro /mnt/usb
+	else
+		write_images
 	fi
-done
-
-if [ ${USB_HAS_VALID_IMAGES} -eq 0 ]; then
-	# Need to remount our base dir RW
-	mount -oremount,rw /mnt/usb
-	capture_images
-	mount -oremount,ro /mnt/usb
-else
-	write_images
-fi
 
 
-# Wait for all processes to complete
-wait
+	# Wait for all processes to complete
+	wait
 
+	# Touch /tmp/completed to tell the LED blinking loop to indicate done
+	touch /tmp/completed
 
-
-(
-set +x
-# Blink green led if it works.  Blink red if bad things happened
-if [ ! -e /tmp/failed ]; then
-	echo 0 > /sys/class/leds/red-led/brightness
-	echo "All images wrote correctly!"
-	while true; do
-		sleep 1
-		echo 1 > /sys/class/leds/green-led/brightness
-		sleep 1
-		echo 0 > /sys/class/leds/green-led/brightness
-	done
-else
-	echo 0 > /sys/class/leds/green-led/brightness
-	echo "One or more images failed! $(cat /tmp/failed)"
-	echo "Check /tmp/logs for more information."
-	while true; do
-		sleep 1
-		echo 1 > /sys/class/leds/red-led/brightness
-		sleep 1
-		echo 0 > /sys/class/leds/red-led/brightness
-	done
-fi
-) &
+	# If anything failed at this point, be noisy on console about it
+	if [ -e /tmp/failed ] ;then
+		echo "One or more images failed! $(cat /tmp/failed)"
+		echo "Check /tmp/logs for more information."
+	else
+		echo "All images wrote correctly!"
+	fi
+}

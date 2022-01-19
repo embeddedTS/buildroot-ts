@@ -62,11 +62,15 @@ fpga="${fpga_update} ${fpga_img}"
 # A space separated list of all potential accepted image names
 all_images="${sdimage} ${emmcimage} ${sataimage} ${uboot_img} ${fpga}"
 
-# Functions to turn LEDs on and off easily
-redled_on() { ts7800ctl -n ; }
-redled_off() { ts7800ctl -F ; }
-grnled_on() { ts7800ctl -g ; }
-grnled_off() { ts7800ctl -G ; }
+# Set up LED definitions, this needs to happen before blast_funcs.sh is sourced
+led_init() {
+	grnled_on() { ts7800ctl -g ; }
+	grnled_off() { ts7800ctl -G ; }
+	redled_on() { ts7800ctl -n ; }
+	redled_off() { ts7800ctl -F ; }
+
+        led_blinkloop
+}
 
 
 # Once the device nodes/partitions and valid image names are established,
@@ -74,11 +78,6 @@ grnled_off() { ts7800ctl -G ; }
 . /mnt/usb/blast_funcs.sh
 
 mkdir /tmp/logs
-
-redled_on
-grnled_off
-
-
 
 # Our default automatic use of the blast functions
 # Rather than calling this function, the calls made here can be integrated
@@ -282,54 +281,41 @@ capture_images() {
 	fi
 }
 
-# Check for any one of the valid image sources, if none exist, then start
-# the image capture process. Note that, if uboot_img or fpga_* exist, then no
-# images are captured. If they do not exist, neither are captured as this
-# is something that is not really standard and not something to replicate
-# between units and should rather be from official source binaries
-USB_HAS_VALID_IMAGES=0
-for NAME in ${all_images}; do
-	if [ -e "/mnt/usb/${NAME}" ]; then
-		USB_HAS_VALID_IMAGES=1
+blast_run() {
+	# Check for any one of the valid image sources, if none exist, then start
+	# the image capture process. Note that, if uboot_img or fpga_* exist, then
+	# no images are captured. If they do not exist, neither are captured as
+	# this is something that is not really standard and not something to
+	# replicate between units and should rather be from official source
+	# binaries
+	USB_HAS_VALID_IMAGES=0
+	for NAME in ${all_images}; do
+		if [ -e "/mnt/usb/${NAME}" ]; then
+			USB_HAS_VALID_IMAGES=1
+		fi
+	done
+
+	if [ ${USB_HAS_VALID_IMAGES} -eq 0 ]; then
+		# Need to remount our base dir RW
+		mount -oremount,rw /mnt/usb
+		capture_images
+		mount -oremount,ro /mnt/usb
+	else
+		write_images
 	fi
-done
-
-if [ ${USB_HAS_VALID_IMAGES} -eq 0 ]; then
-	# Need to remount our base dir RW
-	mount -oremount,rw /mnt/usb
-	capture_images
-	mount -oremount,ro /mnt/usb
-else
-	write_images
-fi
 
 
-# Wait for all processes to complete
-wait
+	# Wait for all processes to complete
+	wait
 
+	# Touch /tmp/completed to tell the LED blinking loop to indicate done
+	touch /tmp/completed
 
-
-(
-set +x
-# Blink green led if it works.  Blink red if bad things happened
-if [ ! -e /tmp/failed ]; then
-	redled_off
-	echo "All images wrote correctly!"
-	while true; do
-		sleep 1
-		grnled_on
-		sleep 1
-		grnled_off
-	done
-else
-	grnled_off
-	echo "One or more images failed! $(cat /tmp/failed)"
-	echo "Check /tmp/logs for more information."
-	while true; do
-		sleep 1
-		redled_on
-		sleep 1
-		redled_off
-	done
-fi
-) &
+	# If anything failed at this point, be noisy on console about it
+	if [ -e /tmp/failed ] ;then
+		echo "One or more images failed! $(cat /tmp/failed)"
+		echo "Check /tmp/logs for more information."
+	else
+		echo "All images wrote correctly!"
+	fi
+}
