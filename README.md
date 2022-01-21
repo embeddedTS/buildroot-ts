@@ -1,79 +1,162 @@
 
 # embeddedTS Buildroot
-
-## Build instructions
-This branch implements BR_EXTERNAL for embeddedTS products.  Currently this includes:
+This repository implements BR_EXTERNAL for embeddedTS products. Currently this includes support for:
 
 * TS-4100
+* TS-4900
 * TS-7100 (via ts7250v3_defconfig)
 * TS-7250-V3
 * TS-7553-V2
+* TS-7680
 * TS-7840
-
-This supports these defconfigs:
-* make ts4100_defconfig
-	* Supports TS-4100
-	* Generates a minimal Linux with hardware support (based on 4.9 kernel)
-	* Write to any boot device for the unit: USB, SD, eMMC, NFS, etc.
-* make ts7250v3_defconfig
-	* Supports TS-7250-V3 and TS-7100
-	* Generates a minimal Linux with hardware support
-	* Write to any boot device for the board, USB, eMMC
-* make ts7553v2_defconfig
-	* Supports TS-7553-V2
-	* Generates a minimal Linux with hardware support (based on 4.9 kernel)
-	* Write to any boot device for the unit: USB, SD, eMMC, NFS, etc.
-* make tsa38x_defconfig
-	* Supports TS-7840
-	* Generates a minimal Linux with hardware support (based on 5.10 kernel)
-	* Write to any boot device for the unit: USB, eMMC, SATA, NFS, etc.
-
-The following defconfigs are used to create bootable USB drives meant for production:
-* make ts7250v3_usbprod_defconfig
-	* Supports TS-7250-V3 and TS-7100
-	* Generates a tar for use on a thumbdrive that runs a blast.sh script on the drive to rewrite and verify the media on the board.
-	* Outputs to buildroot/output/images/ts7250v3-usb-production-rootfs.tar.bz2
-	* Extract this to a USB drive with one partition, and a partition of either ext2/3/4 or FAT32.
-* make tsimx6_usbprod_defconfig
-	* Supports TS-4900, TS-7970, and TS-TPC-7990
-	* Generates a tar for use on a thumbdrive that runs a blast.sh script on the drive to rewrite and verify the media on the board. See the respective product manual for information on this Production Mechanism.
-	* Outputs to buildroot/output/images/tsimx6-usb-production-rootfs.tar.bz2
-	* Extract this to a USB drive with one partition, formatted either ext2/3 or FAT32 with an MBR partition table.
-
-* make tsimx6ul_usbprod_defconfig
-	* Supports TS-4100 and TS-7553-V2
-	* Generates a tar for use on a thumbdrive that runs a blast.sh script on the drive to rewrite and verify the media on the board. See the respective product manual for information on this Production Mechanism.
-	* Outputs to buildroot/output/images/tsimx6ul-usb-production-rootfs.tar.bz2
-	* Extract this to a USB drive with one partition, formatted either ext2/3 or FAT32 with an MBR partition table.
-* make tsa38x_usbprod_defconfig
-	* Supports TS-7840
-	* Generates a tar for use on a thumbdrive that runs a blast.sh script on the drive to rewrite and verify the media on the board. See the respective product manual for information on this Production Mechanism.
-	* Outputs to buildroot/output/images/tsa38x-usb-production-rootfs-${DATESTAMP}.tar.xz
-	* Extract this to a USB drive with one partition, formatted either ext2/3/4 or FAT32 with a GPT partition table.
+* TS-7970
+* TS-TPC-7970
 
 
-For example, this will generate a minimal TS-7250-V3 image:
+## Getting Started
+This project implements a tagged release from upstream Buildroot as a submodule. This allows for this project to be used as it is to build whole Buildroot projects, or it can be integrated as a BR2_EXTERNAL directory for custom implementations.
 
-    git clone https://github.com/embeddedTS/buildroot-ts.git
-    cd buildroot-ts
-    git submodule update --init
-    make ts7250v3_defconfig
-    make
+The repository and the Buildroot submodule can all be cloned in a single command with:
+
+	git clone --recurse-submodules https://github.com/embeddedTS/buildroot-ts.git
+	cd buildroot-ts
+
+From here, projects can be built, for example, this will generate a minimal TS-7250-V3 image:
+
+	make ts7250v3_defconfig all
 
 The output files will be located in `buildroot/output/images/`
 
-
 As this uses Buildroot as a git submodule, its possible to change which branch/tag is used by Buildroot. For example, to checkout a specific tag:
 
-    cd buildroot
-    git checkout <tag>
-    cd ..
-    make <defconfig>
-    make
+	cd buildroot
+	git checkout <tag>
+	cd ..
+	make <defconfig>
+	make
 
 This will output a Buildroot image built from the specified tag. The buildroot version can be reverted with the same init command used above:
 
-    git submodule update --init
+	git submodule update --init
+
+We will update the Buildroot release tag used as time goes on, we will only push these updates to the repository once they have been tested by us to ensure compatibility.
+
+
+## Build instructions
+
+| Product | Buildroot base defconfig | USB Image Replicator |
+|---------|--------------------------|-------------------------|
+| TS-4100 | [ts4100_defconfig](#ts4100_defconfig) | [tsimx6ul_usbprod_defconfig](#tsimx6ul_usbprod_defconfig) |
+| TS-4900 | | [tsimx6_usbprod_defconfig](#tsimx6_usbprod_defconfig) |
+| TS-7100 | [ts7250v3_defconfig](#ts7250v3_defconfig) | [ts7250v3_usbprod_defconfig](#ts7250v3_usbprod_defconfig) |
+| TS-7250-V3 | [ts7250v3_defconfig](#ts7250v3_defconfig) | [ts7250v3_usbprod_defconfig](#ts7250v3_usbprod_defconfig)  |
+| TS-7553-V2 | [ts7553v2_defconfig](#ts7553v2_defconfig) | [tsimx6ul_usbprod_defconfig](#tsimx6ul_usbprod_defconfig) |
+| TS-7680 | [ts7680_defconfig](#ts7680_defconfig) |  |
+| TS-7840 | [tsa38x_defconfig](#tsa38x_defconfig) | [tsa38x_usbprod_defconfig](#tsa38x_usbprod_defconfig) |
+| TS-7970 | | [tsimx6_usbprod_defconfig](#tsimx6_usbprod_defconfig) |
+| TS-TPC-7990 | | [tsimx6_usbprod_defconfig](#tsimx6_usbprod_defconfig) |
+
+
+### ts4100_defconfig
+* Supports TS-4100 devices
+* Generates a minimal Linux with hardware support
+* Outputs `rootfs.tar.xz` which can be written to any boot device for the platform: USB, SD, eMMC, etc.
+
+Can be built with (See [Using Docker](#using-docker) for how to build in Docker container):
+
+	make ts4100_defconfig all
+
+### ts7250v3_defconfig
+* Supports TS-7250-V3 and TS-7100 devices
+* Generates a minimal Linux with hardware support
+* Outputs `rootfs.tar.gz` which can be written to any boot device for the platform: USB, eMMC, etc.
+
+Can be built with (See [Using Docker](#using-docker) for how to build in Docker container):
+
+	make ts7250v3_defconfig all
+
+### ts7553v2_defconfig
+* Supports TS-7553-V2 devices
+* Generates a minimal Linux with hardware support (based on 4.9 kernel)
+* Outputs `rootfs.tar.xz` which can be written to any boot device for the platform: USB, SD, eMMC, etc.
+
+Can be built with (See [Using Docker](#using-docker) for how to build in Docker container):
+
+	make ts7553v2_defconfig all
+
+### ts7680_defconfig
+* Supports TS-7680 devices
+* Upstream support provided by Buildroot, configuration file not directly in this repository
+* This repository provides the following useful configuration options not in upstream Buildroot (be sure to enable them if desired):
+	* BR2_PACKAGE_TS7680_UTILS (Utilities for TS-7680, `tshwctl`, `switchctl`, `tsmicroctl`, etc.)
+	* BR2_PACKAGE_TSSILOMON_INIT (Enables TS-SILO script to run on startup)
+ * Outputs `rootfs.tar` and `sdcard.img` which can be written to any boot device for the platform: USB, SD, eMMC, etc.
+
+Can be built with (See [Using Docker](#using-docker) for how to build in Docker container):
+
+	make ts7680_defconfig all
+
+### tsa38x_defconfig
+* Supports TS-7840 devices
+* Generates a minimal Linux with hardware support (based on 5.10 kernel)
+* Outputs `rootfs.tar.xz` which can be written to any boot device for the platform: USB, eMMC, SATA, NFS, etc.
+
+Can be built with (See [Using Docker](#using-docker) for how to build in Docker container):
+
+	make tsa38x_defconfig all
+
+### tsimx6ul_usbprod_defconfig
+* Image Replication tool for TS-4100 and TS-7553-V2 devices
+* Able to capture disk images and/or write out disk images to all supported media on devices
+* Outputs `tsimx6ul-usb-image-replicator-rootfs.tar.bz2` and `tsimx6ul-usb-image-replicator.dd` that can be written to a USB drive and booted on supported devices
+* The `tsimx6ul-usb-image-replicator.dd` file is self expanding after first boot. It is intended to make the image capture process easier
+* See the respective product manual for more information on the Image Replicator tool
+
+Can be built with (See [Using Docker](#using-docker) for how to build in Docker container):
+
+	make tsimx6ul_usbprod_defconfig all
+
+### tsimx6_usbprod_defconfig
+* Image Replication tool for TS-4900, TS-7970, and TS-TPC-7990 devices
+* Able to capture disk images and/or write out disk images to all supported media on devices
+* Outputs `tsimx6-usb-image-replicator-rootfs.tar.bz2` and `tsimx6-usb-image-replicator.dd` that can be written to a USB drive and booted on supported devices
+* The `tsimx6-usb-image-replicator.dd` file is self expanding after first boot. It is intended to make the image capture process easier
+* See the respective product manual for more information on the Image Replicator tool
+
+Can be built with (See [Using Docker](#using-docker) for how to build in Docker container):
+
+	make tsimx6_usbprod_defconfig all
+
+### ts7250v3_usbprod_defconfig
+* Supports TS-7250-V3 and TS-7100 devices
+* Generates a tarball for use on a USB drive to boot the device, run a script named `blast.sh` from the drive to write and verify or capture images from the device media. See the respective product manual for information on this Production Mechanism.
+
+Can be built with (See [Using Docker](#using-docker) for how to build in Docker container):
+
+	make ts7250v3_usbprod_defconfig all
+This outputs a tarball to `buildroot/output/images/ts7250v3-usb-production-rootfs.tar.bz2` intended to be written to a USB drive with one partition which is formatted either `ext2`, `ext3`, `ext4`, or `FAT32 (including vfat)` with an MBR or GPT partition table.
+
+### ts7800v2_usbprod_defconfig
+* Image Replication tool for the TS-7800-V2
+* Able to capture disk images and/or write out disk images to all supported media on devices
+* Outputs `ts7800v2-usb-image-replicator-rootfs.tar.bz2` and `ts7800v2-usb-image-replicator.dd` that can be written to a USB drive and booted on supported devices
+* The `ts7800v2-usb-image-replicator.dd` file is self expanding after first boot. It is intended to make the image capture process easier
+* See the respective product manual for more information on the Image Replicator tool
+
+Can be built with (See [Using Docker](#using-docker) for how to build in Docker container):
+
+	make ts7800v2_usbprod_defconfig all
+
+### tsa38x_usbprod_defconfig
+* Supports TS-7840 devices
+* Generates a tarball for use on a USB drive to boot the device, run a script named `blast.sh` from the drive to write and verify or capture images from the device media. See the respective product manual for information on this Production Mechanism.
+
+
+Can be built with (See [Using Docker](#using-docker) for how to build in Docker container):
+
+	make tsa38x_usbprod_defconfig all
+This outputs a tarball to `buildroot/output/images/tsa38x-usb-production-rootfs-${DATESTAMP}.tar.xz` intended to be written to a USB drive with one partition which is formatted either `ext2`, `ext3`, `ext4`, or `FAT32 (including vfat)` with an MBR or GPT partition table.
+
 
 ## Extra Packages
 
@@ -93,9 +176,7 @@ The container is implemented as a simple front-end script, any arguments passed 
 
 For example, to use the TS-7250-V3 defconfig, open a menuconfig window, then start a build:
 
-    ./scripts/run_docker_buildroot.sh make ts7250v3_defconfig
-    ./scripts/run_docker_buildroot.sh make menuconfig
-    ./scripts/run_docker_buildroot.sh make
+    ./scripts/run_docker_buildroot.sh make ts7250v3_defconfig menuconfig all
 
 ### Notes on using Docker
 
