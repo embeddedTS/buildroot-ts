@@ -319,7 +319,14 @@ capture_img_or_tar_from_disk() {
 ## }
 led_blinkloop() {
 	while true; do
-		if [ -e /tmp/failed ]; then
+		# Running state
+		if [ ! -e /tmp/completed ]; then
+			redled_on
+			grnled_on
+			sleep 0.25
+			grnled_off
+			sleep 1
+		elif [ -e /tmp/failed ]; then
 			grnled_off
 			redled_on
 			sleep 1
@@ -329,12 +336,6 @@ led_blinkloop() {
 			redled_off
 			grnled_on
 			sleep 1
-			grnled_off
-			sleep 1
-		else # Running state
-			redled_on
-			grnled_on
-			sleep 0.25
 			grnled_off
 			sleep 1
 		fi
