@@ -1,0 +1,13 @@
+# Prepare with:
+# mkimage -T script -C none -A arm -n 'usb boot' -d tsinit.scr tsinit.ub
+
+env set loadaddr 0x40008000
+env set fdtaddr 0x41000000;
+env set ramdiskaddr 0x42000000;
+
+load usb 0:1 ${fdtaddr} /boot/imx28-ts${model}.dtb
+setenv bootargs ${cmdline_append};
+
+load usb 0:1 ${loadaddr} /boot/uImage;
+load usb 0:1 ${ramdiskaddr} /boot/rootfs.cpio.gz;
+bootm ${loadaddr} ${ramdiskaddr}:${filesize} ${fdtaddr};

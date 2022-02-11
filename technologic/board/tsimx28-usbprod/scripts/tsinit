@@ -1,0 +1,50 @@
+#!/bin/sh
+
+# WARNING! This script modifies the booted media! It is the only way
+# for the Image Replicator process to be able to be run on compatible
+# platforms as they do not use U-Boot normally!
+
+# If a stock image is booted, the initramfs will end up executing this
+# script. It detects the model and boot media, and then writes an
+# appropriate U-Boot image to the booted media and causes a reboot.
+
+# If our aftermarket image with U-Boot is booted, or, the above step was
+# completed, the unit will now be booting U-Boot which can boot the intended
+# Image Replicator tool
+
+eval $(tshwctl -i)
+
+case "${model}" in
+	"0x7670")
+		echo "Model: TS-7670"
+		model="ts7670"
+		case "${bootmode}" in
+			"0x0") DEV="/dev/mmcblk0p1"
+			;;
+			"0x1") DEV="/dev/mmcblk2p1"
+			;;
+			*) exit 1
+			;;
+		esac
+	;;
+	"0x7400")
+		echo "Model: TS-7400-V2"
+		model="ts7400v2"
+		case "${bootmode}" in
+			"0x0") DEV="/dev/mmcblk0p1"
+			;;
+			"0x1") DEV="/dev/mmcblk2p1"
+			;;
+			*) exit 1
+			;;
+		esac
+	;;
+	*)
+		echo "Model: Unknown"
+		exit 1
+	;;
+esac
+
+dd if=/mnt/usbdev/"${model}"-uboot.sd of="${DEV}" conv=fsync
+
+tshwctl --reboot

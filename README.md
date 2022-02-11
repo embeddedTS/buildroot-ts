@@ -52,9 +52,9 @@ We will update the Buildroot release tag used as time goes on, we will only push
 | TS-4900 | | [tsimx6_usbprod_defconfig](#tsimx6_usbprod_defconfig) |
 | TS-7100 | [ts7250v3_defconfig](#ts7250v3_defconfig) | [ts7250v3_usbprod_defconfig](#ts7250v3_usbprod_defconfig) |
 | TS-7250-V3 | [ts7250v3_defconfig](#ts7250v3_defconfig) | [ts7250v3_usbprod_defconfig](#ts7250v3_usbprod_defconfig)  |
-| TS-7400-V2| [ts7400v2_defconfig](#ts7400v2_defconfig) |  |
+| TS-7400-V2| [ts7400v2_defconfig](#ts7400v2_defconfig) | [tsimx28_usbprod_defconfig](#tsimx28_usbprod_defconfig) |
 | TS-7553-V2 | [ts7553v2_defconfig](#ts7553v2_defconfig) | [tsimx6ul_usbprod_defconfig](#tsimx6ul_usbprod_defconfig) |
-| TS-7670 | [ts7670_defconfig](#ts7670_defconfig) |  |
+| TS-7670 | [ts7670_defconfig](#ts7670_defconfig) | [tsimx28_usbprod_defconfig](#tsimx28_usbprod_defconfig) |
 | TS-7680 | [ts7680_defconfig](#ts7680_defconfig) |  |
 | TS-7840 | [tsa38x_defconfig](#tsa38x_defconfig) | [tsa38x_usbprod_defconfig](#tsa38x_usbprod_defconfig) |
 | TS-7970 | | [tsimx6_usbprod_defconfig](#tsimx6_usbprod_defconfig) |
@@ -126,6 +126,27 @@ Can be built with (See [Using Docker](#using-docker) for how to build in Docker 
 Can be built with (See [Using Docker](#using-docker) for how to build in Docker container):
 
 	make tsa38x_defconfig all
+
+### tsimx28_usbprod_defconfig
+* Image Replication tool for TS-7670 and TS-7400-V2 device
+* Able to capture disk images and/or write out disk images to all supported media on devices. :warning: ***Not possible in all situations, see 'tsimx28 notes' below***
+* Outputs `tsimx28-usb-image-replicator-rootfs.tar.xz` and `tsimx28-usb-image-replicator.dd.xz` that can be written to a USB drive and booted on supported devices
+* The `tsimx28-usb-image-replicator.dd.xz` file is self expanding after first boot. It is intended to make the image capture process easier
+* See the respective product manual for more information on the Image Replicator tool
+
+Can be built with (See [Using Docker](#using-docker) for how to build in Docker container):
+
+	make tsimx28_usbprod_defconfig all
+
+#### tsimx28 notes
+* Compatible with stock images as well as our additional supported images, e.g. Linx kernel 4.9 with Debian Stretch.
+* The Image Replicator tool is **not** compatible with devices that have soldered down NAND flash. Contact our [support team](https://support.embeddedts.com/support/home) if you are working with an older device that uses soldered down NAND flash rather than eMMC.
+
+Devices that are compatible with this Image Replicator tool boot directly to the selected media, SD or eMMC, and are unable to load a kernel from a USB disk.
+
+When booted from a stock image, a shim script is used to install U-Boot over top of the bootloader provided by NXP on the booted media (SD / eMMC) and then the unit is rebooted and the Image Replication process starts. In other words, the Image Replicator tool, booted on compatible platforms, will modify booted media!
+
+This is not an issue for the most common use-case of writing custom images to devices. For example, a TS-7670 ordered from us will have eMMC pre-programmed with our stock image. It would be possible with the Image Replicator USB drive inserted, for the unit to boot, install a U-Boot bootloader to the eMMC flash, reboot itself, and start the Image Replicator process to write out full custom images to eMMC or to attached microSD cards. Image Capture of a stock image with this tool is difficult due to the process required to boot the Image Replicator. Please contact our [support team](https://support.embeddedts.com/support/home) for assistance if you need to run this process.
 
 ### tsimx6ul_usbprod_defconfig
 * Image Replication tool for TS-4100 and TS-7553-V2 devices
