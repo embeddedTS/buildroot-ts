@@ -253,15 +253,18 @@ capture_img_or_tar_from_disk() {
 		# If there is a single partition, then lets make a tarball
 		# as opposed to a whole disk image to save time and space.
 		if [ ${PART_CNT} -eq 1 ]; then
-			# Subshell used becuase we are changing dirs
-			(
-			cd "${DST_PATH}" || err_exit "cd ${DST_PATH}"
 			echo "Creating compressed tarball"
-			tar cf "${TAR}" -C "${TMP_DIR}"/ . || err_exit "tar create ${TAR}"
-			md5sum "${TAR}" > "${TAR}.md5" || err_exit "md5 ${TAR}.md5"
-			xz -2 "${TAR}" || err_exit "compress ${TAR}"
-			md5sum "${TAR}.xz" > "${TAR}.xz.md5" || err_exit "md5 ${TAR}.xz.md5"
-			)
+			tar cf "${DST_TAR}" -C "${TMP_DIR}"/ . || err_exit "tar create ${TAR}"
+			# This two-step is needed, and repeated, because we want
+			# the .md5 file to not have any relative paths
+			MD5SUM=$(md5sum "${DST_TAR}") || err_exit "md5 ${TAR}"
+			MD5SUM=$(echo "${MD5SUM}" | cut -f 1 -d ' ')
+			echo "${MD5SUM}  ${TAR}" > "${DST_TAR}.md5"
+
+			xz -2 "${DST_TAR}" || err_exit "compress ${TAR}"
+			MD5SUM=$(md5sum "${DST_TAR}.xz") || err_exit "md5 ${TAR}.xz"
+			MD5SUM=$(echo "${MD5SUM}" | cut -f 1 -d ' ')
+			echo "${MD5SUM}  ${TAR}.xz" > "${DST_TAR}.xz.md5"
 		else
 			# Prep our existing .dd for better compression
 			echo "Zeroing out free space in FS for better compression"
@@ -278,15 +281,18 @@ capture_img_or_tar_from_disk() {
 		if [ ${PART_CNT} -eq 1 ]; then
 			rm "${DST_IMG}" || err_exit "rm ${DST_IMG}"
 		else
-			# Subshell is used because we are changing dirs
-			# XXX: check errors here?
-			(
 			echo "Compressing and generating md5s"
-			cd "${DST_PATH}" || err_exit "cd ${DST_PATH}"
-			md5sum "${IMG}" > "${IMG}".md5 || err_exit "md5 ${IMG}.md5"
-			xz -2 "${IMG}" || err_exit "compress ${IMG}"
-			md5sum "${IMG}".xz > "${IMG}".xz.md5 || err_exit "md5 ${IMG}.xz.md5"
-			)
+
+			# This two-step is needed, and repeated, because we want
+			# the .md5 file to not have any relative paths
+			MD5SUM=$(md5sum "${DST_IMG}") || err_exit "md5 ${IMG}"
+			MD5SUM=$(echo "${MD5SUM}" | cut -f 1 -d ' ')
+			echo "${MD5SUM}  ${IMG}" > "${DST_IMG}.md5"
+
+			xz -2 "${DST_IMG}" || err_exit "compress ${IMG}"
+			MD5SUM=$(md5sum "${DST_IMG}.xz") || err_exit "md5 ${IMG}.xz"
+			MD5SUM=$(echo "${MD5SUM}" | cut -f 1 -d ' ')
+			echo "${MD5SUM}  ${IMG}.xz" > "${DST_IMG}.xz.md5"
 		fi
 
 
