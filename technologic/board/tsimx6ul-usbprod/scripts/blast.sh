@@ -138,7 +138,7 @@ capture_images() {
         	capture_img_or_tar_from_disk "${SD_DEV}" "/mnt/usb" "sd"
 	fi
 
-	if [ -b "${EMMC_DEV}" ]; then
+	if [ -b "${EMMC_DEV}" ] && [ ! -e /tmp/failed ]; then
         	capture_img_or_tar_from_disk "${EMMC_DEV}" "/mnt/usb" "emmc"
 	fi
 }
