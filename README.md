@@ -130,8 +130,8 @@ Can be built with (See [Using Docker](#using-docker) for how to build in Docker 
 ### tsimx6ul_usbprod_defconfig
 * Image Replication tool for TS-4100 and TS-7553-V2 devices
 * Able to capture disk images and/or write out disk images to all supported media on devices
-* Outputs `tsimx6ul-usb-image-replicator-rootfs.tar.bz2` and `tsimx6ul-usb-image-replicator.dd` that can be written to a USB drive and booted on supported devices
-* The `tsimx6ul-usb-image-replicator.dd` file is self expanding after first boot. It is intended to make the image capture process easier
+* Outputs `tsimx6ul-usb-image-replicator-rootfs.tar.xz` and `tsimx6ul-usb-image-replicator.dd.xz` that can be written to a USB drive and booted on supported devices
+* The `tsimx6ul-usb-image-replicator.dd.xz` file is self expanding after first boot. It is intended to make the image capture process easier
 * See the respective product manual for more information on the Image Replicator tool
 
 Can be built with (See [Using Docker](#using-docker) for how to build in Docker container):
@@ -141,8 +141,8 @@ Can be built with (See [Using Docker](#using-docker) for how to build in Docker 
 ### tsimx6_usbprod_defconfig
 * Image Replication tool for TS-4900, TS-7970, and TS-TPC-7990 devices
 * Able to capture disk images and/or write out disk images to all supported media on devices
-* Outputs `tsimx6-usb-image-replicator-rootfs.tar.bz2` and `tsimx6-usb-image-replicator.dd` that can be written to a USB drive and booted on supported devices
-* The `tsimx6-usb-image-replicator.dd` file is self expanding after first boot. It is intended to make the image capture process easier
+* Outputs `tsimx6-usb-image-replicator-rootfs.tar.xz` and `tsimx6-usb-image-replicator.dd.xz` that can be written to a USB drive and booted on supported devices
+* The `tsimx6-usb-image-replicator.dd.xz` file is self expanding after first boot. It is intended to make the image capture process easier
 * See the respective product manual for more information on the Image Replicator tool
 
 Can be built with (See [Using Docker](#using-docker) for how to build in Docker container):
@@ -161,8 +161,8 @@ This outputs a tarball to `buildroot/output/images/ts7250v3-usb-production-rootf
 ### ts7800v2_usbprod_defconfig
 * Image Replication tool for the TS-7800-V2
 * Able to capture disk images and/or write out disk images to all supported media on devices
-* Outputs `ts7800v2-usb-image-replicator-rootfs.tar.bz2` and `ts7800v2-usb-image-replicator.dd` that can be written to a USB drive and booted on supported devices
-* The `ts7800v2-usb-image-replicator.dd` file is self expanding after first boot. It is intended to make the image capture process easier
+* Outputs `ts7800v2-usb-image-replicator-rootfs.tar.xz` and `ts7800v2-usb-image-replicator.dd.xz` that can be written to a USB drive and booted on supported devices
+* The `ts7800v2-usb-image-replicator.dd.xz` file is self expanding after first boot. It is intended to make the image capture process easier
 * See the respective product manual for more information on the Image Replicator tool
 
 Can be built with (See [Using Docker](#using-docker) for how to build in Docker container):
