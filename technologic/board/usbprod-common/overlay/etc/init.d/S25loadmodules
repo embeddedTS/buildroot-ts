@@ -1,0 +1,40 @@
+#!/bin/sh
+#
+# Loads modules that may be needed for the Image Replicator
+#
+
+umask 077
+
+start() {
+	printf "Loading vfat modules: "
+	modprobe vfat
+	if [ $? -eq 0 ]; then
+		echo "OK"
+	else
+		echo "FAIL"
+	fi
+}
+stop() {
+	true
+}
+restart() {
+	stop
+	start
+}
+
+case "$1" in
+  start)
+	start
+	;;
+  stop)
+	stop
+	;;
+  restart|reload)
+	restart
+	;;
+  *)
+	echo "Usage: $0 {start|stop|restart}"
+	exit 1
+esac
+
+exit $?
