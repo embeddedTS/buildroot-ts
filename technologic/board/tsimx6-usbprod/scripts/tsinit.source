@@ -34,6 +34,9 @@ if test  $model -eq '4900'; then
 	fi;
 fi;
 
+# Export imx_type for use by blast.sh
+env set bootargs ${cmdline_append} imx_type=${imx_type};
+
 load usb 0:1 ${loadaddr} /boot/uImage;
 load usb 0:1 ${ramdiskaddr} /boot/rootfs.cpio.uboot;
 bootm ${loadaddr} ${ramdiskaddr} ${fdtaddr};

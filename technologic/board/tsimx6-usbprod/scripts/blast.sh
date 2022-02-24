@@ -159,13 +159,32 @@ if [ -e "/mnt/usb/${uboot_img}" ]; then
 	(
 		set -x
 
-		eval "$(dd if=${UBOOT_DEV} bs=1024 skip=1 count=512 2>/dev/null | strings | grep imx_type)"
-		if [ -z "${imx_type}" ]; then err_exit "Unable to detect imx_type in flash!"; fi
-		BOARD_IMX_TYPE="${imx_type}"
+		# Get imx_type as exported by U-Boot
+		# This is the best way to get it reliably since it has been
+		# observed that different versions of U-Boot store the variables
+		# differently in the environment
+		CMDLINE=$(cat /proc/cmdline)
+		for I in ${CMDLINE}; do
+			case $I in
+				imx_type=*)
+					BOARD_IMX_TYPE="${I#imx_type=}"
+					;;
+			esac
+		done
 
-
+		# Get imx_type from the new image
+		# Older binaries seem to not have '=' used as a separator, but
+		# have <val>\0<var> in memory. This may just be an artifact of
+		# how this value is stored as its consistent with a number of
+		# setenv() calls from initialization.
 		eval "$(strings /mnt/usb/${uboot_img} | grep imx_type)"
-		if [ -z "${imx_type}" ]; then err_exit "Unable to detect imx_type in image file!"; fi
+		if [ -z "${imx_type}" ]; then
+			# Attempt to extract imx_type from older binary
+			imx_type="$(strings $I | grep -B1 imx_type| head -n1)"
+			if [ -z "${imx_type}" ]; then
+				err_exit "Unable to detect imx_type in image file!";
+			fi
+		fi
 		IMAGE_IMX_TYPE="${imx_type}"
 
 		if [ "$BOARD_IMX_TYPE" != "$IMAGE_IMX_TYPE" ]; then
