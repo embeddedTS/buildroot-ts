@@ -7,7 +7,7 @@ umask 077
 
 start() {
 	printf "Loading vfat modules: "
-	modprobe vfat
+	modprobe vfat >/dev/null 2>&1
 	if [ $? -eq 0 ]; then
 		echo "OK"
 	else
