@@ -25,7 +25,7 @@ UBOOT_BN=$(basename "${UBOOT_DEV}")
 
 # Create array of valid file names for each media type
 sdimage_tar="sdimage.tar.xz sdimage.tar.bz2 sdimage.tar.gz sdimage.tar"
-sdimage_img="adimage.dd.xz sdimage.dd.bz2 sdimage.dd.gz sdimage.dd"
+sdimage_img="sdimage.dd.xz sdimage.dd.bz2 sdimage.dd.gz sdimage.dd"
 sdimage="${sdimage_tar} ${sdimage_img}"
 emmcimage_tar="emmcimage.tar.xz emmcimage.tar.bz2 emmcimage.tar.gz emmcimage.tar"
 emmcimage_img="emmcimage.dd.xz emmcimage.dd.bz2 emmcimage.dd.gz emmcimage.dd"
@@ -35,32 +35,17 @@ sataimage_img="sataimage.dd.xz sataimage.dd.bz2 sataimage.dd.gz sataimage.dd"
 sataimage="${sataimage_tar} ${sataimage_img}"
 uboot_img="u-boot.kwb"
 
-# NOTE! These file names need to be symlinks to the actual, original filenames
-# as downloaded from FTP. The reason is due to the original names containing the
-# revision number in the name which the script needs to see if the FPGA should be
-# updated. But, in such a way that can be solidly matched without fuzz from
-# wildcards. e.g. we could match ts7800v2_fpga*.rpd, but that could match
-# multiple files if multiple are copied to the disk in error. Requiring a symlink
-# helps reduce foot injuries.
-#
-# e.g.
-# ln -sf ts7800v2_fpga_rev44.rpd ts7800v2-fpga.rpd
-# ln -sf ts7800v2_fpga_rev47_updater ts7800v2-fpga-updater
-fpga_img="ts7800v2-fpga.rpd"
-fpga_update="ts7800v2-fpga-updater"
-fpga="${fpga_update} ${fpga_img}"
-
 # A space separated list of all potential accepted image names
-all_images="${sdimage} ${emmcimage} ${sataimage} ${uboot_img} ${fpga}"
+all_images="${sdimage} ${emmcimage} ${sataimage} ${uboot_img}"
 
 # Set up LED definitions, this needs to happen before blast_funcs.sh is sourced
 led_init() {
-	grnled_on() { ts7800ctl -g ; }
-	grnled_off() { ts7800ctl -G ; }
-	redled_on() { ts7800ctl -n ; }
-	redled_off() { ts7800ctl -F ; }
+	grnled_on() { echo 1 > /sys/class/leds/green\:power/brightness ; }
+	grnled_off() { echo 0 > /sys/class/leds/green\:power/brightness ; }
+	redled_on() { echo 1 > /sys/class/leds/red\:status/brightness ; }
+	redled_off() { echo 0 > /sys/class/leds/red\:status/brightness ; }
 
-        led_blinkloop
+	led_blinkloop
 }
 
 
@@ -75,82 +60,13 @@ mkdir /tmp/logs
 # in to custom blast processes
 write_images() {
 
-	### Write FPGA bitstream from file or actual update utility
-	# NOTE!
-	# The filenames ${fpga_img} and/or ${fpga_update} MUST be symlinks to
-	# the actual file and CANNOT be renamed!
-	#
-	# NOTE!
-	# This needs to be run before attempting any other write process since it
-	# causes the FPGA to go braindead and requires a hardware reset before any
-	# FPGA peripherals can function again. Additionally, all messages go to
-	# console for this segment
-	if [ -e "/mnt/usb/${fpga_img}" ] || [ -e "/mnt/usb/${fpga_update}" ]; then
-
-		# FPGA binary is in SPI flash
-		modprobe m25p80
-
-		if [ -e "/mnt/usb/${fpga_update}" ]; then
-			echo "========== Writing new FPGA bitstream via updater =========="
-			(
-				set -x
-
-				FPGAFILE=$(readlink /mnt/usb/"${fpga_update}") || err_exit "File /mnt/usb/${fpga_update} must be a symlink"
-				NEWREV=${FPGAFILE%_updater}
-				NEWREV=$(echo "${NEWREV}" | sed -e 's/^.*rev//')
-				if [ -z "${NEWREV}" ]; then
-					err_exit "Invalid revision string in file /mnt/usb/${FPGAFILE}"
-				fi
-
-				eval "$(ts7800ctl -i)" || err_exit "ts7800ctl failed"
-				# ts7800ctl prints in hex
-				if [ -z "${fpga_rev}" ]; then err_exit "Unknown FPGA rev"; fi
-				FPGAREV=$((fpga_rev))
-
-				if [ ${FPGAREV} -lt ${NEWREV} ]; then
-					/mnt/usb/"${FPGAFILE}" || err_exit "Failed to program FPGA"
-					reboot -f
-				else
-					echo "FPGA is newer or same as updater, not updating!"
-				fi
-
-			)
-
-		elif [ -e "/mnt/usb/${fpga_img}" ]; then
-			echo "========== Writing new FPGA bitstream from file =========="
-			(
-				set -x
-
-				FPGAFILE=$(readlink /mnt/usb/"${fpga_img}") || err_exit "File ${fpga_img} must be a symlink"
-				NEWREV=${FPGAFILE%.rpd}
-				NEWREV=$(echo "${NEWREV}" | sed -e 's/^.*rev//')
-				if [ -z "${NEWREV}" ]; then
-					err_exit "Invalid revision string in file /mnt/usb/${FPGAFILE}"
-				fi
-
-				eval "$(ts7800ctl -i)" || err_exit "ts7800ctl failed"
-				# ts7800ctl prints in hex
-				if [ -z "${fpga_rev}" ]; then err_exit "Unknown FPGA rev"; fi
-				# ts7800ctl prints in hex
-				FPGAREV=$((fpga_rev))
-
-				if [ ${FPGAREV} -lt ${NEWREV} ]; then
-					load_fpga_flash /mnt/usb/"${fpga_img}" || err_exit "Failed to program FPGA"
-					reboot -f
-				else
-					echo "FPGA is newer or same as image, not updating!"
-				fi
-			)
-		fi
-	fi
-
 ### Check for and handle SD images
 # Order of search preferences handled by sdimage variable
 (
 	DID_SOMETHING=0
 	for NAME in ${sdimage_tar}; do
 		if [ -e "/mnt/usb/${NAME}" ]; then
-			untar_image "/mnt/usb/${NAME}" "${SD_DEV}" "sd" "ext4"
+			untar_image "/mnt/usb/${NAME}" "${SD_DEV}" "sd" "ext4gpt"
 			DID_SOMETHING=1
 			break
 		fi
@@ -174,7 +90,7 @@ write_images() {
 	DID_SOMETHING=0
 	for NAME in ${emmcimage_tar}; do
 		if [ -e "/mnt/usb/${NAME}" ]; then
-			untar_image "/mnt/usb/${NAME}" "${EMMC_DEV}" "emmc" "ext4"
+			untar_image "/mnt/usb/${NAME}" "${EMMC_DEV}" "emmc" "ext4gpt"
 			DID_SOMETHING=1
 			break
 		fi
@@ -212,7 +128,7 @@ write_images() {
 	DID_SOMETHING=0
 	for NAME in ${sataimage_tar}; do
 		if [ -e "/mnt/usb/${NAME}" ]; then
-			untar_image "/mnt/usb/${NAME}" "${SATA_DEV}" "sata"
+			untar_image "/mnt/usb/${NAME}" "${SATA_DEV}" "sata" "ext4gpt"
 			DID_SOMETHING=1
 			break
 		fi
@@ -274,7 +190,7 @@ capture_images() {
 
 blast_run() {
 	# Check for any one of the valid image sources, if none exist, then start
-	# the image capture process. Note that, if uboot_img or fpga_* exist, then
+	# the image capture process. Note that, if uboot_img nor fpga_* exist, then
 	# no images are captured. If they do not exist, neither are captured as
 	# this is something that is not really standard and not something to
 	# replicate between units and should rather be from official source

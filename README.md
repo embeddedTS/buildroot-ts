@@ -9,6 +9,7 @@ This repository implements BR_EXTERNAL for embeddedTS products. Currently this i
 * TS-7400-V2
 * TS-7553-V2
 * TS-7670
+* TS-7800-V2
 * TS-7680
 * TS-7840
 * TS-7970
@@ -56,6 +57,7 @@ We will update the Buildroot release tag used as time goes on, we will only push
 | TS-7553-V2 | [ts7553v2_defconfig](#ts7553v2_defconfig) | [tsimx6ul_usbprod_defconfig](#tsimx6ul_usbprod_defconfig) |
 | TS-7670 | [ts7670_defconfig](#ts7670_defconfig) | [tsimx28_usbprod_defconfig](#tsimx28_usbprod_defconfig) |
 | TS-7680 | [ts7680_defconfig](#ts7680_defconfig) |  |
+| TS-7800-V2 |  | [ts7800v2_usbprod_defconfig](#ts7800v2_usbprod_defconfig)  |
 | TS-7840 | [tsa38x_defconfig](#tsa38x_defconfig) | [tsa38x_usbprod_defconfig](#tsa38x_usbprod_defconfig) |
 | TS-7970 | [tsimx6_defconfig](#tsimx6_defconfig) | [tsimx6_usbprod_defconfig](#tsimx6_usbprod_defconfig) |
 | TS-TPC-7990 | [tsimx6_defconfig](#tsimx6_defconfig) | [tsimx6_usbprod_defconfig](#tsimx6_usbprod_defconfig) |
