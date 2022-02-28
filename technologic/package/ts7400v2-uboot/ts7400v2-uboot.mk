@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-TS7400V2_UBOOT_VERSION = 20220121
+TS7400V2_UBOOT_VERSION = 20220301
 TS7400V2_UBOOT_SOURCE = ts7400v2-$(TS7400V2_UBOOT_VERSION).sd
 TS7400V2_UBOOT_SITE = https://files.embeddedts.com/ts-arm-sbc/ts-7400_V2-linux/binaries/u-boot
 
