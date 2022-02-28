@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-TS7670_UBOOT_VERSION = 20220121
+TS7670_UBOOT_VERSION = 20220228
 TS7670_UBOOT_SOURCE = ts7670-$(TS7670_UBOOT_VERSION).sd
 TS7670_UBOOT_SITE = https://files.embeddedts.com/ts-arm-sbc/ts-7670-linux/binaries/u-boot
 
