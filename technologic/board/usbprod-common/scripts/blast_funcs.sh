@@ -164,11 +164,11 @@ dd_image() {
 
 		CMD=$(get_stream_decomp "${SRC_DD}")
 		${CMD} "${SRC_DD}" | dd bs=4M of="${DST_DEV}" conv=notrunc,fsync || err_exit "${DST_DEV} dd write"
-		BYTES=$(${CMD} "${SRC_DD}" | wc -c)
 
 		MD5SUM="${SRC_DD%%.*}"
 		MD5SUM="${MD5SUM}.dd.md5"
 		if [ -e "${MD5SUM}" ]; then
+			BYTES=$(${CMD} "${SRC_DD}" | wc -c)
 			EXPECTED=$(cut -f 1 -d ' ' "${MD5SUM}")
 			ACTUAL=$(head "${DST_DEV}" -c "${BYTES}" | md5sum | cut -f 1 -d ' ')
 			if [ "$ACTUAL" != "$EXPECTED" ]; then
