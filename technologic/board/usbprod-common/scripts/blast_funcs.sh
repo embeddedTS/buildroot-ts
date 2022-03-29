@@ -72,6 +72,7 @@ get_stream_decomp() {
 #                            which is needed on older U-Boot versions that don't
 #                            support these options of ext4)
 #      ext4
+#      ext4gpt              (Creates a GPT table instead of MBR)
 # Use
 # untar_image "/path/sdimage.tar.xz" "/dev/mmcblk1" "p" "sd"
 
@@ -93,41 +94,73 @@ untar_image() {
 		# cause this process to set enhanced and high-reliability
 		# modes of eMMC devices.
 
-		# Erase and recreate partition table from scratch
-		# Assume SD eraseblock size of 4 MiB, align to that.
-		# Use MBR format partition table
-		# Use whole disk
-		# Set ext4 NOTE! see mkfs.ext4 below!
-		dd if=/dev/zero of="${DST_DEV}" bs=512 count=1 || err_exit "clear MBR"
-		parted -s -a optimal "${DST_DEV}" mklabel msdos || err_exit "mklabel ${DST_DEV}"
-		parted -a optimal "${DST_DEV}" mkpart primary ext4 4MiB 100% || err_exit "mkpart ${DST_DEV}"
-
 		case "${FILESYSTEM}" in
 			"ext2")
-				CMD="mkfs.ext2"
+				FS_FMT="ext2"
+				FS_CMD="mkfs.ext2"
+				PART_FMT="msdos"
 				;;
 			"ext3")
-				CMD="mkfs.ext3"
+				FS_FMT="ext3"
+				FS_CMD="mkfs.ext3"
+				PART_FMT="msdos"
 				;;
 			# U-Boot on compatible platforms does not support the
 			# checksum and 64bit attrbites of ext4. Turn these off
 			# when making the filesystem
 			"ext4compat")
-				CMD="mkfs.ext4 -O ^metadata_csum,^64bit"
+				FS_FMT="ext4"
+				FS_CMD="mkfs.ext4 -O ^metadata_csum,^64bit"
+				PART_FMT="msdos"
 				;;
 			"ext4")
-				CMD="mkfs.ext4"
+				FS_FMT="ext4"
+				FS_CMD="mkfs.ext4"
+				PART_FMT="msdos"
+				;;
+			"ext4gpt")
+				FS_FMT="ext4"
+				FS_CMD="mkfs.ext4"
+				PART_FMT="gpt"
 				;;
 			*)
 				err_exit "invalid filesystem ${FILESYSTEM} on ${HUMAN_NAME}"
 				;;
 		esac
-		${CMD} "${DST_DEV_PART}"1 -q -F || err_exit "mke2fs ${DST_DEV}"
-		mount "${DST_DEV_PART}"1 "${DST_MOUNT}" || err_exit "mount ${DST_DEV}"
 
+		# Erase and recreate partition table from scratch
+		# Assume SD eraseblock size of 4 MiB, align to that.
+		# Use MBR format partition table
+		# Use whole disk
+		# Set ext4 NOTE! see mkfs.ext4 below!
+		dd if=/dev/zero of="${DST_DEV}" bs=512 count=1 || \
+		  err_exit "clear MBR"
+
+		# Create new partition table that is PART_FMT
+		parted -s -a optimal "${DST_DEV}" mklabel "${PART_FMT}" || \
+		  err_exit "mklabel ${DST_DEV}"
+
+		# Create a single primary partition
+		parted -s -a optimal "${DST_DEV}" mkpart primary "${FS_FMT}" \
+		  4MiB 100% || err_exit "mkpart ${DST_DEV}"
+
+		# Set the first partition as bootable
+		parted -s "${DST_DEV}" set 1 boot on || \
+		  err_exit "set boot ${DST_DEV_PART}1"
+
+		# Format the first partition according to FS_CMD
+		${FS_CMD} "${DST_DEV_PART}"1 -q -F || err_exit "mke2fs ${DST_DEV}"
+
+		# Finally, mount partition
+		mount "${DST_DEV_PART}"1 "${DST_MOUNT}" || \
+		  err_exit "mount ${DST_DEV}"
+
+		# Get the correct command to stream decompress the tarball
+		# and run it
 		CMD=$(get_stream_decomp "${SRC_TARBALL}")
+		${CMD} "${SRC_TARBALL}" | tar -x -C "${DST_MOUNT}" || \
+		  err_exit "untar ${DST_DEV}"
 
-		${CMD} "${SRC_TARBALL}" | tar -x -C "${DST_MOUNT}" || err_exit "untar ${DST_DEV}"
 		sync
 
 		if [ -e "${DST_MOUNT}/md5sums.txt" ]; then
@@ -135,7 +168,9 @@ untar_image() {
 			echo 3 > /proc/sys/vm/drop_caches
 			(
 			cd "${DST_MOUNT}"
-			md5sum --quiet -c md5sums.txt > /tmp/logs/"${HUMAN_NAME}"-md5sum || err_exit "${DST_DEV} FS verify"
+			md5sum --quiet -c md5sums.txt > \
+			  /tmp/logs/"${HUMAN_NAME}"-md5sum || \
+			  err_exit "${DST_DEV} FS verify"
 			)
 		fi
 
@@ -163,14 +198,16 @@ dd_image() {
 		set -x
 
 		CMD=$(get_stream_decomp "${SRC_DD}")
-		${CMD} "${SRC_DD}" | dd bs=4M of="${DST_DEV}" conv=notrunc,fsync || err_exit "${DST_DEV} dd write"
+		${CMD} "${SRC_DD}" | dd bs=4M of="${DST_DEV}" conv=notrunc,fsync \
+		  || err_exit "${DST_DEV} dd write"
 
 		MD5SUM="${SRC_DD%%.*}"
 		MD5SUM="${MD5SUM}.dd.md5"
 		if [ -e "${MD5SUM}" ]; then
 			BYTES=$(${CMD} "${SRC_DD}" | wc -c)
 			EXPECTED=$(cut -f 1 -d ' ' "${MD5SUM}")
-			ACTUAL=$(head "${DST_DEV}" -c "${BYTES}" | md5sum | cut -f 1 -d ' ')
+			ACTUAL=$(head "${DST_DEV}" -c "${BYTES}" | md5sum | \
+			  cut -f 1 -d ' ')
 			if [ "$ACTUAL" != "$EXPECTED" ]; then
 				echo "${DST_DEV} dd verify" >> /tmp/failed
 			fi
@@ -229,7 +266,8 @@ capture_img_or_tar_from_disk() {
 		set -x
 
 		# Using cat has shown to be faster than dd
-		cat "${SRC_DEV}" > "${DST_IMG}" || err_exit "capture from ${DST_IMG}"
+		cat "${SRC_DEV}" > "${DST_IMG}" || \
+		  err_exit "capture from ${DST_IMG}"
 		sync
 
 		TMP_DIR=$(mktemp -d)
@@ -238,9 +276,11 @@ capture_img_or_tar_from_disk() {
 		PART_CNT=$(partx -g "${SRC_DEV}" | wc -l)
 
 		# Get start of partition
-		let linux_start=$(partx -rgo START -n "${PART}":"${PART}" "${DST_IMG}")*512
+		let linux_start=$(partx -rgo START -n "${PART}":"${PART}" \
+		  "${DST_IMG}")*512
 		LODEV=$(losetup -f)
-		losetup -f -o "${linux_start}" "${DST_IMG}" || err_exit "losetup ${DST_IMG}"
+		losetup -f -o "${linux_start}" "${DST_IMG}" || \
+		  err_exit "losetup ${DST_IMG}"
 		fsck "${LODEV}" -y || err_exit "fsck ${DST_IMG}"
 
 		echo "Mounting partition ${PART} of disk image"
@@ -254,7 +294,8 @@ capture_img_or_tar_from_disk() {
 		# as opposed to a whole disk image to save time and space.
 		if [ ${PART_CNT} -eq 1 ]; then
 			echo "Creating compressed tarball"
-			tar cf "${DST_TAR}" -C "${TMP_DIR}"/ . || err_exit "tar create ${TAR}"
+			tar cf "${DST_TAR}" -C "${TMP_DIR}"/ . || \
+			  err_exit "tar create ${TAR}"
 			# This two-step is needed, and repeated, because we want
 			# the .md5 file to not have any relative paths
 			MD5SUM=$(md5sum "${DST_TAR}") || err_exit "md5 ${TAR}"
@@ -262,7 +303,8 @@ capture_img_or_tar_from_disk() {
 			echo "${MD5SUM}  ${TAR}" > "${DST_TAR}.md5"
 
 			xz -2 "${DST_TAR}" || err_exit "compress ${TAR}"
-			MD5SUM=$(md5sum "${DST_TAR}.xz") || err_exit "md5 ${TAR}.xz"
+			MD5SUM=$(md5sum "${DST_TAR}.xz") || \
+			  err_exit "md5 ${TAR}.xz"
 			MD5SUM=$(echo "${MD5SUM}" | cut -f 1 -d ' ')
 			echo "${MD5SUM}  ${TAR}.xz" > "${DST_TAR}.xz.md5"
 		else
@@ -290,7 +332,8 @@ capture_img_or_tar_from_disk() {
 			echo "${MD5SUM}  ${IMG}" > "${DST_IMG}.md5"
 
 			xz -2 "${DST_IMG}" || err_exit "compress ${IMG}"
-			MD5SUM=$(md5sum "${DST_IMG}.xz") || err_exit "md5 ${IMG}.xz"
+			MD5SUM=$(md5sum "${DST_IMG}.xz") || \
+			  err_exit "md5 ${IMG}.xz"
 			MD5SUM=$(echo "${MD5SUM}" | cut -f 1 -d ' ')
 			echo "${MD5SUM}  ${IMG}.xz" > "${DST_IMG}.xz.md5"
 		fi
