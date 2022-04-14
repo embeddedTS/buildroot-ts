@@ -50,7 +50,7 @@ We will update the Buildroot release tag used as time goes on, we will only push
 |---------|--------------------------|-------------------------|
 | TS-4100 | [ts4100_defconfig](#ts4100_defconfig) | [tsimx6ul_usbprod_defconfig](#tsimx6ul_usbprod_defconfig) |
 | TS-4900 | | [tsimx6_usbprod_defconfig](#tsimx6_usbprod_defconfig) |
-| TS-7100 | [ts7250v3_defconfig](#ts7250v3_defconfig) | [ts7250v3_usbprod_defconfig](#ts7250v3_usbprod_defconfig) |
+| TS-7100 | [ts7250v3_defconfig](#ts7250v3_defconfig) |  |
 | TS-7250-V3 | [ts7250v3_defconfig](#ts7250v3_defconfig) | [ts7250v3_usbprod_defconfig](#ts7250v3_usbprod_defconfig)  |
 | TS-7400-V2| [ts7400v2_defconfig](#ts7400v2_defconfig) | [tsimx28_usbprod_defconfig](#tsimx28_usbprod_defconfig) |
 | TS-7553-V2 | [ts7553v2_defconfig](#ts7553v2_defconfig) | [tsimx6ul_usbprod_defconfig](#tsimx6ul_usbprod_defconfig) |
