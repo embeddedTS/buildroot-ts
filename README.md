@@ -172,12 +172,14 @@ Can be built with (See [Using Docker](#using-docker) for how to build in Docker 
 
 ### ts7250v3_usbprod_defconfig
 * Supports TS-7250-V3 and TS-7100 devices
-* Generates a tarball for use on a USB drive to boot the device, run a script named `blast.sh` from the drive to write and verify or capture images from the device media. See the respective product manual for information on this Production Mechanism.
+* Able to capture disk images and/or write out disk images to all supported media on devices
+* Outputs `ts7250v3-usb-image-replicator-rootfs.tar.xz` and `ts7250v3-usb-image-replicator.dd.xz` that can be written to a USB drive and booted on supported devices
+* The `ts7250v3-usb-image-replicator.dd.xz` file is self expanding after first boot. It is intended to make the image capture process easier
+* See the respective product manual for more information on the Image Replicator tool
 
 Can be built with (See [Using Docker](#using-docker) for how to build in Docker container):
 
-	make ts7250v3_usbprod_defconfig all
-This outputs a tarball to `buildroot/output/images/ts7250v3-usb-production-rootfs.tar.bz2` intended to be written to a USB drive with one partition which is formatted either `ext2`, `ext3`, `ext4`, or `FAT32 (including vfat)` with an MBR or GPT partition table.
+	make tsimx6ul_usbprod_defconfig all
 
 ### ts7800v2_usbprod_defconfig
 * Image Replication tool for the TS-7800-V2
