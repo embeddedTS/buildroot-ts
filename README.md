@@ -139,7 +139,7 @@ Can be built with (See [Using Docker](#using-docker) for how to build in Docker 
 	make tsimx28_usbprod_defconfig all
 
 #### tsimx28 notes
-* Compatible with stock images as well as our additional supported images, e.g. Linx kernel 4.9 with Debian Stretch.
+* Compatible with stock images as well as our additional supported images, e.g. Linux kernel 4.9 with Debian Stretch.
 * The Image Replicator tool is **not** compatible with devices that have soldered down NAND flash. Contact our [support team](https://support.embeddedts.com/support/home) if you are working with an older device that uses soldered down NAND flash rather than eMMC.
 
 Devices that are compatible with this Image Replicator tool boot directly to the selected media, SD or eMMC, and are unable to load a kernel from a USB disk.
@@ -219,13 +219,26 @@ Optionally, this can be built in a Docker container. The container is maintained
 
 The container is implemented as a simple front-end script, any arguments passed to the script will be passed directly to the root `buildroot-ts/` directory inside of the container. The first time the script is run, it will build the container so this may take additional time.
 
-For example, to use the TS-7250-V3 defconfig, open a menuconfig window, then start a build:
+The script itself launches the container and then runs any subsequent command-line commands and arguments inside the container itself. The script must prepend each new command to be run in the Docker container.
+
+For example, to use the TS-7250-V3 defconfig, open a menuconfig window, then start a build after saving any changes:
 
     ./scripts/run_docker_buildroot.sh make ts7250v3_defconfig menuconfig all
+
+Build the Image Replicator tool for a TS-4100/TS-7553-V2 with multiple commands:
+
+    ./scripts/run_docker_buildroot.sh make clean
+    ./scripts/run_docker_buildroot.sh make tsimx6ul_usbprod_defconfig
+    ./scripts/run_docker_buildroot.sh make
+
+It is also possible to enter a shell inside of the container:
+
+    ./scripts/run_docker_buildroot.sh bash
+
+From there, any commands issued would be issued inside of the container. See notes below for more details.
 
 ### Notes on using Docker
 
 * Choose building either from the host workstation or Docker container, it is not recommended to mix and match. Do a `make clean` from one build system in order to be able to cleanly switch to another. Switching between the two without `make clean` in between will likely cause build issues
 * The `pwd` is mapped to `/work/` inside the container, with `$HOME` being set to `/work/`. Any changes made inside of `/work/` will be retained, any changes to the rest of the container filesystem will be lost once the container is exited
 * Most of our configs have ccache enabled though Buildroot. Normally, this lies at `~/.buildroot-ccache`. Inside the container however, the `buildroot-ts/` directory is set to `$HOME`. If relying on ccache in Buildroot, be sure to continually use the same build system to prevent excessive work
-* It's possible to enter the shell of the container by passing `bash` to the script, i.e. `./scripts/run_docker_buildroot.sh bash`
