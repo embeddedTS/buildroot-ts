@@ -216,7 +216,7 @@ write_images() {
 
 	if [ ${SATA_IMAGES} -eq 0 ]; then exit; fi
 
-        readlink /sys/class/block/"$(basename ${SATA_DEV})" | grep sata >/dev/null || err_exit "SATA disk not found!"
+	readlink /sys/class/block/"$(basename ${SATA_DEV})" | grep sata >/dev/null || err_exit "SATA disk not found!"
 
 	DID_SOMETHING=0
 	for NAME in ${sataimage_tar}; do
@@ -266,18 +266,18 @@ fi
 # This is our automatic capture of disk images
 capture_images() {
 	if [ -b "${SD_DEV}" ]; then
-        	capture_img_or_tar_from_disk "${SD_DEV}" "/mnt/usb" "sd"
+		capture_img_or_tar_from_disk "${SD_DEV}" "${SD_PART_PREFIX}" "/mnt/usb" "sd"
 	fi
 
 	if [ -b "${EMMC_DEV}" ] && [ ! -e /tmp/failed ]; then
-        	capture_img_or_tar_from_disk "${EMMC_DEV}" "/mnt/usb" "emmc"
+		capture_img_or_tar_from_disk "${EMMC_DEV}" "${EMMC_PART_PREFIX}" "/mnt/usb" "emmc"
 	fi
 
 	# Only capture an image from SATA if SATA_DEV is a SATA device
 	# and the device node is a block device.
-        readlink /sys/class/block/"$(basename ${SATA_DEV})" | grep sata >/dev/null
+	readlink /sys/class/block/"$(basename ${SATA_DEV})" | grep sata >/dev/null
 	if [ $? -eq 0 ] && [ -b "${SATA_DEV}" ] && [ ! -e /tmp/failed ]; then
-        	capture_img_or_tar_from_disk "${SATA_DEV}" "/mnt/usb" "sata"
+		capture_img_or_tar_from_disk "${SATA_DEV}" "${SATA_PART_PREFIX}" "/mnt/usb" "sata"
 	fi
 }
 

@@ -217,10 +217,17 @@ dd_image() {
 
 ### Function to create either a .dd image or a tarball from a source disk
 ### The final files are compressed with xz
-### The source disk is captured bit for bit, the Linux rootfs partition
-###   mounted, sanitized of unique data, temporary files, logs, etc., prepared
-###   for first boot on a new device, given a custom date, and all files
-###   md5summed.
+### If the source disk contains only a single partition, then a sparse temp
+###   file is created on the destination folder. This is then mounted,
+###   along with the source rootfs partition (which is mounted ro,noatime),
+###   and the source filesystem is captured to the sparse file backed mount.
+###   This is done with a tar pipeline to ensure all files are captured as
+###   they should be.
+### If the source disk is multiple partitions, the source disk is captured
+###   bit for bit, the source rootfs partition is mounted.
+### At this point, the data to be captured is sanitized of unique data,
+###   temporary files, logs, etc., prepared for first boot on a new device,
+###   given a custom date stamp in a file, and all files are md5summed.
 ### If the source disk contains only a single partition, the files are then
 ###   added to a single tarball, which is compressed and md5summed as well, and
 ###   then the source disk capture is removed.
@@ -237,54 +244,101 @@ dd_image() {
 ###
 # Args
 # 1) Source device, whole disk, e.g. /dev/mmcblk0
-# 2) Dest. path, e.g. /mnt/usb, this path will be used for source image capture
+# 2) Source part prefex, e.g. "p" or ""
+# 3) Dest. path, e.g. /mnt/usb, this path will be used for source image capture
 #      as well as final file output destination
-# 3) Dest. name, e.g. "sd" "emmc" etc. Used for naming the final output, e.g.
+# 4) Dest. name, e.g. "sd" "emmc" etc. Used for naming the final output, e.g.
 #      "sdimage.tar.xz"
-# 4) [Optional] The partition number of the Linux rootfs, 1 if not set.
+# 5) [Optional] The partition number of the Linux rootfs, 1 if not set.
 #      NOTE! This is the actual partition number, not the count on disk!
 #      e.g. 5 == the first extended MBR partition, even if it is the only
 #      partition on disk.
 # Use:
-# capture_img_or_tar_from_disk "/dev/mmcblk1" "/mnt/usb" "sd" 
-# capture_img_or_tar_from_disk "/dev/mmcblk2" "/mnt/nfs" "emmc" "2"
+# capture_img_or_tar_from_disk "/dev/mmcblk1" "p" "/mnt/usb" "sd" 
+# capture_img_or_tar_from_disk "/dev/mmcblk2" "p" "/mnt/nfs" "emmc" "2"
 
 capture_img_or_tar_from_disk() {
 
 	SRC_DEV="${1}"
-	DST_PATH="${2}"
-	NAME="${3}"
+	SRC_PART_PREFIX="${2}"
+	DST_PATH="${3}"
+	NAME="${4}"
 	IMG="${NAME}image.dd"
 	TAR="${NAME}image.tar"
 	DST_IMG="${DST_PATH}/${IMG}"
 	DST_TAR="${DST_PATH}/${TAR}"
-	PART="${4:-1}"
+	PART="${5:-1}"
 	
 
 	echo "====== Capturing ${NAME} image from ${SRC_DEV} ======"
 	(
 		set -x
 
-		# Using cat has shown to be faster than dd
-		cat "${SRC_DEV}" > "${DST_IMG}" || \
-		  err_exit "capture from ${DST_IMG}"
-		sync
-
-		TMP_DIR=$(mktemp -d)
-
 		# Get number of partitions on the source device
 		PART_CNT=$(partx -g "${SRC_DEV}" | wc -l)
 
-		# Get start of partition
-		let linux_start=$(partx -rgo START -n "${PART}":"${PART}" \
-		  "${DST_IMG}")*512
-		LODEV=$(losetup -f)
-		losetup -f -o "${linux_start}" "${DST_IMG}" || \
-		  err_exit "losetup ${DST_IMG}"
-		fsck "${LODEV}" -y || err_exit "fsck ${DST_IMG}"
+		TMP_DIR=$(mktemp -d)
 
-		echo "Mounting partition ${PART} of disk image"
-		mount "${LODEV}" "${TMP_DIR}"/ || err_exit "mount ${DST_IMG}"
+		# If there is a single partition, we're going to end up making
+		# a tarball. To reduce repeated code, we set up a mount point
+		# backed by a sparse file with the SRC_DEV's disk contents here.
+		# Then, this path can be passed to the sanitization script
+		# regardless of it being the sparse backed or disk image loopback.
+		if [ ${PART_CNT} -eq 1 ]; then
+
+			# Make a temporary file on ${DST_PATH} that will become
+			# our loopback mount
+			TMP_DISK=$(mktemp -p "${DST_PATH}")
+
+			# Make that temp file a sparse file with a size that is
+			# 100 MB smaller than the remaining space on the DST_PATH
+			truncate --size \
+			  $(stat -f "${DST_PATH}" -c '(%a*%S/1024)-100000' | bc)K \
+			  "${TMP_DISK}"
+
+			# Make a filesystem on the sparse file
+			# XXX: Currently just hard-coding ext4, this could potentially
+			# be problematic on some platforms?
+			mkfs.ext4 "${TMP_DISK}" || err_exit "mkfs temp disk"
+
+			# Mount the temp disk to the temp dir
+			mount -oloop "${TMP_DISK}" "${TMP_DIR}"
+
+			# Now, need to mount SRC PART to a separate dir
+			TMP_SRC_DIR=$(mktemp -d)
+			mount -oro,noatime "${SRC_DEV}""${SRC_PART_PREFIX}""${PART}" \
+			  "${TMP_SRC_DIR}" || err_exit "mount SRC PART for tarball"
+
+			# Copy source disk filesystem to our sparse file backed
+			# mount location. Use tar pipeline to ensure EVERY file
+			# property, permission, etc, is coped intact
+			tar -cf - -C "${TMP_SRC_DIR}"/ . | tar x -C "${TMP_DIR}" \
+			  || err_exit "copy SRC contents to TMP DST"
+
+			# Unmount the SRC disk, we should no longer need this.
+			# At this point, TMP_DIR should now be able to be passed
+			# through the sanitize script just the same as if it were
+			# a loopmount part from the whole disk.
+			umount "${TMP_SRC_DIR}" || err_exit "umount TMP SRC DIR"
+		else
+
+			# Capture whole disk image
+			# Using cat has shown to be faster than dd
+			cat "${SRC_DEV}" > "${DST_IMG}" || \
+			  err_exit "capture from ${DST_IMG}"
+			sync
+
+			# Get start of partition
+			let linux_start=$(partx -rgo START -n "${PART}":"${PART}" \
+			  "${DST_IMG}")*512
+			LODEV=$(losetup -f)
+			losetup -f -o "${linux_start}" "${DST_IMG}" || \
+			  err_exit "losetup ${DST_IMG}"
+			fsck "${LODEV}" -y || err_exit "fsck ${DST_IMG}"
+
+			echo "Mounting partition ${PART} of disk image"
+			mount "${LODEV}" "${TMP_DIR}"/ || err_exit "mount ${DST_IMG}"
+		fi
 
 		# Run prep image script against the mounted directory
 		/mnt/usb/sanitize_linux_rootfs.sh "${TMP_DIR}"
@@ -315,15 +369,16 @@ capture_img_or_tar_from_disk() {
 		fi
 
 		umount "${TMP_DIR}" || err_exit "umount ${DST_IMG}"
-		losetup -d "${LODEV}" || err_exit "losetup destroy ${DST_IMG}"
 		rmdir "${TMP_DIR}"
 
-		# If we used a tarball, then remove the source image.
+		# If we used a tarball, then remove the sparse file backing
+		# the loopback.
 		# If a disk image, then compress and create output files
 		if [ ${PART_CNT} -eq 1 ]; then
-			rm "${DST_IMG}" || err_exit "rm ${DST_IMG}"
+			rm "${TMP_DISK}" || err_exit "rm ${TMP_DISK}"
 		else
 			echo "Compressing and generating md5s"
+			losetup -d "${LODEV}" || err_exit "losetup destroy ${LODEV}"
 
 			# This two-step is needed, and repeated, because we want
 			# the .md5 file to not have any relative paths
