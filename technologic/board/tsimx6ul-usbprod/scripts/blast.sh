@@ -8,15 +8,9 @@
 
 # Whole device device node path for eMMC. Assuming it is static each boot.
 EMMC_DEV="/dev/mmcblk1"
-# Partition prefix letter(s) for device node.
-# e.g. /dev/mmcblk0p1, part prefix is "p". /dev/sda1, part prefix is ""
-EMMC_PART_PREFIX="p"
 
 # Whole device device node path for SD. Assuming it is static each boot.
 SD_DEV="/dev/mmcblk0"
-# Partition prefix letter(s) for device node.
-# e.g. /dev/mmcblk0p1, part prefix is "p". /dev/sda1, part prefix is ""
-SD_PART_PREFIX="p"
 
 # U-Boot is stored on boot partitions of eMMC on platforms compatible with
 # this script.
@@ -66,7 +60,7 @@ write_images() {
 	DID_SOMETHING=0
 	for NAME in ${sdimage_tar}; do
 		if [ -e "/mnt/usb/${NAME}" ]; then
-			untar_image "/mnt/usb/${NAME}" "${SD_DEV}" "${SD_PART_PREFIX}" "sd" "ext4compat"
+			untar_image "/mnt/usb/${NAME}" "${SD_DEV}" "sd" "ext4compat"
 			DID_SOMETHING=1
 			break
 		fi
@@ -90,7 +84,7 @@ write_images() {
 	DID_SOMETHING=0
 	for NAME in ${emmcimage_tar}; do
 		if [ -e "/mnt/usb/${NAME}" ]; then
-			untar_image "/mnt/usb/${NAME}" "${EMMC_DEV}" "${EMMC_PART_PREFIX}" "emmc" "ext4compat"
+			untar_image "/mnt/usb/${NAME}" "${EMMC_DEV}" "emmc" "ext4compat"
 			DID_SOMETHING=1
 			break
 		fi
@@ -135,11 +129,11 @@ fi
 # This is our automatic capture of disk images
 capture_images() {
 	if [ -b "${SD_DEV}" ]; then
-		capture_img_or_tar_from_disk "${SD_DEV}" "${SD_PART_PREFIX}" "/mnt/usb" "sd"
+		capture_img_or_tar_from_disk "${SD_DEV}" "/mnt/usb" "sd"
 	fi
 
 	if [ -b "${EMMC_DEV}" ] && [ ! -e /tmp/failed ]; then
-		capture_img_or_tar_from_disk "${EMMC_DEV}" "${EMMC_PART_PREFIX}" "/mnt/usb" "emmc"
+		capture_img_or_tar_from_disk "${EMMC_DEV}" "/mnt/usb" "emmc"
 	fi
 }
 

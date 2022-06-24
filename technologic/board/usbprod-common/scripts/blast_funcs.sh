@@ -49,6 +49,48 @@ get_stream_decomp() {
 	echo "${CMD}"
 }
 
+### Function to return the full file path to a specified disk partition.
+### Converts input disk and part in to a path, handles block devices
+### and files. Needed because some device paths use a partition prefix
+### while others do not. e.g. /dev/mmcblk0p1 uses "p" while /dev/sdb1
+### uses "".
+###
+### This code is almost verbatim from a similar function in growpart.
+###
+# Args
+# 1) Disk, e.g. /dev/sdb, /dev/mmcblk0, etc.
+# 2) Partition, e.g. 1, 2, 3
+# Returns full path, e.g. /dev/mmcblk0p2, /dev/sdb1
+# Use
+# PART_PATH=$(get_diskpart_path "/dev/mmcblk0" 1)
+# PART_PATH will contain "/dev/mmcblk0p1"
+
+get_diskpart_path() {
+	disk="$1"
+	part="$2"
+	dpart=""
+
+	dpart="${disk}${part}" # disk and partition number
+	if [ -b "$disk" ]; then
+		if [ -b "${disk}p${part}" ] && [ "${disk%[0-9]}" != "${disk}" ]; then
+			# for block devices that end in a number (/dev/nbd0)
+			# the partition is "<name>p<partition_number>" (/dev/nbd0p1)
+			dpart="${disk}p${part}"
+		elif [ "${disk#/dev/loop[0-9]}" != "${disk}" ]; then
+			# for /dev/loop devices, sfdisk output will be <name>p<number>
+			# format also, even though there is not a device there.
+			dpart="${disk}p${part}"
+		fi
+	else
+		case "$disk" in
+			# sfdisk for files ending in digit to <disk>p<num>.
+			*[0-9]) dpart="${disk}p${part}";;
+		esac
+	fi
+
+	echo "$dpart"
+}
+
 ### Function to work with a single partition on a disk with a tarball for
 ### its contents. This function will wipe the partition table on the dest.
 ### device, recreate a single partition for the whole lenght of disk,
@@ -62,10 +104,9 @@ get_stream_decomp() {
 # Args:
 # 1) Source file, the full path to the tarball
 # 2) Dest. device node, e.g. /dev/sda, /dev/mmcblk1
-# 3) Dest. part prefix, e.g. for /dev/sdb1, part prefix is "", for /dev/mmcblk1p1
 #      part prefix is "p"
-# 4) Human readable part name, e.g. "sd", "emmc", "sata" Used for logging
-# 5) Filesystem type [optional]
+# 3) Human readable part name, e.g. "sd", "emmc", "sata" Used for logging
+# 4) Filesystem type [optional]
 #      May be one of:
 #      ext3
 #      ext4compat [default] (This adds the options ^metadata_csum,^64bit to ext4
@@ -74,16 +115,15 @@ get_stream_decomp() {
 #      ext4
 #      ext4gpt              (Creates a GPT table instead of MBR)
 # Use
-# untar_image "/path/sdimage.tar.xz" "/dev/mmcblk1" "p" "sd"
+# untar_image "/path/sdimage.tar.xz" "/dev/mmcblk1" "sd"
 
 untar_image() {
 
 	SRC_TARBALL=${1}
 	DST_DEV=${2}
-	DST_DEV_PART=${2}${3}
 	DST_MOUNT=$(mktemp -d)
-	HUMAN_NAME=${4}
-	FILESYSTEM="${5:-ext4compat}"
+	HUMAN_NAME=${3}
+	FILESYSTEM="${4:-ext4compat}"
 	
 	echo "======= Writing ${HUMAN_NAME} filesystem ========"
 
@@ -146,13 +186,14 @@ untar_image() {
 
 		# Set the first partition as bootable
 		parted -s "${DST_DEV}" set 1 boot on || \
-		  err_exit "set boot ${DST_DEV_PART}1"
+		  err_exit "set boot $(get_diskpart_path "${DST_DEV}" 1)"
 
 		# Format the first partition according to FS_CMD
-		${FS_CMD} "${DST_DEV_PART}"1 -q -F || err_exit "mke2fs ${DST_DEV}"
+		${FS_CMD} "$(get_diskpart_path "${DST_DEV}" 1)" -q -F \
+		  || err_exit "mke2fs ${DST_DEV}"
 
 		# Finally, mount partition
-		mount "${DST_DEV_PART}"1 "${DST_MOUNT}" || \
+		mount "$(get_diskpart_path "${DST_DEV}" 1)" "${DST_MOUNT}" || \
 		  err_exit "mount ${DST_DEV}"
 
 		# Get the correct command to stream decompress the tarball
@@ -167,7 +208,7 @@ untar_image() {
 			# Drop caches so we have to reread all files
 			echo 3 > /proc/sys/vm/drop_caches
 			(
-			cd "${DST_MOUNT}"
+			cd "${DST_MOUNT}" || err_exit "cd ${DST_MOUNT}"
 			md5sum --quiet -c md5sums.txt > \
 			  /tmp/logs/"${HUMAN_NAME}"-md5sum || \
 			  err_exit "${DST_DEV} FS verify"
@@ -244,30 +285,28 @@ dd_image() {
 ###
 # Args
 # 1) Source device, whole disk, e.g. /dev/mmcblk0
-# 2) Source part prefex, e.g. "p" or ""
-# 3) Dest. path, e.g. /mnt/usb, this path will be used for source image capture
+# 2) Dest. path, e.g. /mnt/usb, this path will be used for source image capture
 #      as well as final file output destination
-# 4) Dest. name, e.g. "sd" "emmc" etc. Used for naming the final output, e.g.
+# 3) Dest. name, e.g. "sd" "emmc" etc. Used for naming the final output, e.g.
 #      "sdimage.tar.xz"
-# 5) [Optional] The partition number of the Linux rootfs, 1 if not set.
+# 4) [Optional] The partition number of the Linux rootfs, 1 if not set.
 #      NOTE! This is the actual partition number, not the count on disk!
 #      e.g. 5 == the first extended MBR partition, even if it is the only
 #      partition on disk.
 # Use:
-# capture_img_or_tar_from_disk "/dev/mmcblk1" "p" "/mnt/usb" "sd" 
-# capture_img_or_tar_from_disk "/dev/mmcblk2" "p" "/mnt/nfs" "emmc" "2"
+# capture_img_or_tar_from_disk "/dev/mmcblk1" "/mnt/usb" "sd"
+# capture_img_or_tar_from_disk "/dev/mmcblk2" "/mnt/nfs" "emmc" "2"
 
 capture_img_or_tar_from_disk() {
 
 	SRC_DEV="${1}"
-	SRC_PART_PREFIX="${2}"
-	DST_PATH="${3}"
-	NAME="${4}"
+	DST_PATH="${2}"
+	NAME="${3}"
 	IMG="${NAME}image.dd"
 	TAR="${NAME}image.tar"
 	DST_IMG="${DST_PATH}/${IMG}"
 	DST_TAR="${DST_PATH}/${TAR}"
-	PART="${5:-1}"
+	PART="${4:-1}"
 	
 
 	echo "====== Capturing ${NAME} image from ${SRC_DEV} ======"
@@ -293,7 +332,7 @@ capture_img_or_tar_from_disk() {
 			# Make that temp file a sparse file with a size that is
 			# 100 MB smaller than the remaining space on the DST_PATH
 			truncate --size \
-			  $(stat -f "${DST_PATH}" -c '(%a*%S/1024)-100000' | bc)K \
+			  "$(stat -f "${DST_PATH}" -c '(%a*%S/1024)-100000' | bc)K" \
 			  "${TMP_DISK}"
 
 			# Make a filesystem on the sparse file
@@ -306,7 +345,8 @@ capture_img_or_tar_from_disk() {
 
 			# Now, need to mount SRC PART to a separate dir
 			TMP_SRC_DIR=$(mktemp -d)
-			mount -oro,noatime "${SRC_DEV}""${SRC_PART_PREFIX}""${PART}" \
+			mount -oro,noatime \
+			  "$(get_diskpart_path "${SRC_DEV}" "${PART}")" \
 			  "${TMP_SRC_DIR}" || err_exit "mount SRC PART for tarball"
 
 			# Copy source disk filesystem to our sparse file backed
