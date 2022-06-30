@@ -24,10 +24,6 @@ menu "Scripts for Device Support"
 	source "$BR2_EXTERNAL_TECHNOLOGIC_PATH/package/tssilomon-init/Config.in"
 endmenu
 
-menu "External Wireless Firmware"
-	source "$BR2_EXTERNAL_TECHNOLOGIC_PATH/package/wilc-firmware/Config.in"
-endmenu
-
 menu "Bootloader Binaries"
 	source "$BR2_EXTERNAL_TECHNOLOGIC_PATH/package/ts7670-uboot/Config.in"
 	source "$BR2_EXTERNAL_TECHNOLOGIC_PATH/package/ts7400v2-uboot/Config.in"
