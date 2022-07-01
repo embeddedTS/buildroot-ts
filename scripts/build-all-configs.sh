@@ -2,6 +2,23 @@
 
 # XXX: Must be run from root dir of buildroot-ts tree!
 
+usage() {
+	set +x
+	echo ""
+	echo "Usage:"
+	echo "./build-all-configs.sh [group]"
+	echo ""
+	echo "[group] is one of:"
+	echo "  base    - Build only the base platform configs"
+	echo "  extra   - Build only the base w/ extra_packages configs"
+	echo "  usbprod - Build only the Image Replicator configs"
+	echo ""
+	echo "If no [group] is specified, all configurations will be built in parallel!"
+	echo ""
+	exit 1;
+}
+
+
 if [ $(id -u) -eq 0 ]; then
 	set +x
 	echo ""
@@ -14,24 +31,89 @@ if [ $(id -u) -eq 0 ]; then
 	exit 1;
 fi
 
+if [ "$1" == "-h" ]; then
+	usage
+fi
 
+# Build array of total builds
+# This should include all base builds, usbprod, and extra_package builds
+USBPROD=()
+BASE=()
+EXTRA=()
+for CONFIG in technologic/configs/ts*usbprod*; do
+	CONFIG="$(basename ${CONFIG})"
+	USBPROD+=("${CONFIG}")
+done
 
-echo "WARNING! This will start" $(ls technologic/configs/ts* | wc -l) "parallel builds!"
+for CONFIG in technologic/configs/ts*; do
+	CONFIG="$(basename ${CONFIG})"
+	BOARD="${CONFIG%_*}"
+	if [[ "${BOARD}" == *"usbprod" ]]; then continue; fi
+	BASE+=("${CONFIG}")
+	EXTRA+=("${CONFIG}")
+done
+
+# Build list of total configurations. If no args supplied, build all
+if [ $# -ne 1 ]; then
+	TOTAL=$((${#USBPROD[@]} + ${#BASE[@]} + ${#EXTRA[@]}))
+elif [ "$1" == "base" ]; then
+	echo "Building only base configurations!"
+	TOTAL=$((${#BASE[@]}))
+	EXTRA=()
+	USBPROD=()
+elif [ "$1" == "extra" ]; then
+	echo "Building only base w/ extra_packages configurations!"
+	TOTAL=$((${#EXTRA[@]}))
+	BASE=()
+	USBPROD=()
+elif [ "$1" == "usbprod" ]; then
+	echo "Building only Image Replicator configurations!"
+	TOTAL=$((${#USBPROD[@]}))
+	BASE=()
+	EXTRA=()
+else
+	echo "Unknown argument \"$1\""
+	usage
+fi
+
+# XXX: The separation of the 3 totals allows for args to build all, base, usbprod, extra...
+echo "WARNING! This will start ${TOTAL} parallel builds!"
 echo "Press ctrl+c to stop this within 10 seconds"
 sleep 10
 
 docker build --quiet --tag "buildroot-buildenv-$(git rev-parse --short=12 HEAD)" docker/
 
 unset DOCKER_PIDS
-for CONFIG in technologic/configs/*; do
-  CONFIG=$(basename ${CONFIG})
-  BOARD=${CONFIG%_*}
-  if [ "${BOARD}" == "extra_packages" ]; then continue; fi
-  mkdir -p "out/${BOARD}"
-  ARG="O=/work/out/${BOARD} ${CONFIG} all"
-  DOCKER_PID=$(docker run -d --rm -it --volume $(pwd):/work -w /work -e HOME=/work --user $(id -u):$(id -g) "buildroot-buildenv-$(git rev-parse --short=12 HEAD)" bash -c "make ${ARG} >/work/out/"${BOARD}"/log")
-  DOCKER_PIDS="${DOCKER_PID} ${DOCKER_PIDS}"
+for CONFIG in ${USBPROD[@]}; do
+	BOARD=${CONFIG%_*}
+	mkdir -p "out/${BOARD}"
+	ARG="O=/work/out/${BOARD} ${CONFIG} all"
+	DOCKER_PID=$(docker run -d --rm -it --volume $(pwd):/work -w /work -e HOME=/work --user $(id -u):$(id -g) "buildroot-buildenv-$(git rev-parse --short=12 HEAD)" bash -c "make ${ARG} >/work/out/"${BOARD}"/log 2>&1")
+	DOCKER_PIDS="${DOCKER_PID} ${DOCKER_PIDS}"
+done
 
+for CONFIG in ${BASE[@]}; do
+	BOARD=${CONFIG%_*}
+	mkdir -p "out/${BOARD}"
+	ARG="O=/work/out/${BOARD} ${CONFIG} all"
+	DOCKER_PID=$(docker run -d --rm -it --volume $(pwd):/work -w /work -e HOME=/work --user $(id -u):$(id -g) "buildroot-buildenv-$(git rev-parse --short=12 HEAD)" bash -c "make ${ARG} >/work/out/"${BOARD}"/log 2>&1")
+	DOCKER_PIDS="${DOCKER_PID} ${DOCKER_PIDS}"
+done
+
+for CONFIG in ${EXTRA[@]}; do
+	BOARD=${CONFIG%_*}
+	BOARD="${BOARD}_extra_packages"
+	mkdir -p "out/${BOARD}"
+
+	# Make the merged defconfig
+	ARG="./buildroot/support/kconfig/merge_config.sh -O /work/out/${BOARD}/ technologic/configs/extra_packages_defconfig technologic/configs/${CONFIG}"
+	DOCKER_PID=$(docker run --rm -it --volume $(pwd):/work -w /work -e HOME=/work --user $(id -u):$(id -g) "buildroot-buildenv-$(git rev-parse --short=12 HEAD)" bash -c "${ARG} >/work/out/"${BOARD}"/log 2>&1")
+	DOCKER_PIDS="${DOCKER_PID} ${DOCKER_PIDS}"
+
+	# Start the build
+	ARG="O=/work/out/${BOARD} all"
+	DOCKER_PID=$(docker run -d --rm -it --volume $(pwd):/work -w /work -e HOME=/work --user $(id -u):$(id -g) "buildroot-buildenv-$(git rev-parse --short=12 HEAD)" bash -c "make ${ARG} >/work/out/"${BOARD}"/log 2>&1")
+	DOCKER_PIDS="${DOCKER_PID} ${DOCKER_PIDS}"
 done
 
 echo ""
