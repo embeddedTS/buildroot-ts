@@ -7,10 +7,10 @@
 # needs to change for a new platform. Should be.
 
 # Whole device device node path for eMMC. Assuming it is static each boot.
-EMMC_DEV="/dev/mmcblk1"
+EMMC_DEV="/dev/mmcblk0"
 
 # Whole device device node path for SD. Assuming it is static each boot.
-SD_DEV="/dev/mmcblk0"
+SD_DEV="/dev/mmcblk1"
 
 # U-Boot is stored on boot partitions of eMMC on platforms compatible with
 # this script.
@@ -27,7 +27,8 @@ sdimage="${sdimage_tar} ${sdimage_img}"
 emmcimage_tar="emmcimage.tar.xz emmcimage.tar.bz2 emmcimage.tar.gz emmcimage.tar"
 emmcimage_img="emmcimage.dd.xz emmcimage.dd.bz2 emmcimage.dd.gz emmcimage.dd"
 emmcimage="${emmcimage_tar} ${emmcimage_img}"
-uboot_img="u-boot.imx"
+uboot_img="SPL"
+uboot_dtb="u-boot-dtb.bin"
 
 # A space separated list of all potential accepted image names
 all_images="${sdimage} ${emmcimage} ${uboot_img}"
@@ -60,7 +61,7 @@ write_images() {
 	DID_SOMETHING=0
 	for NAME in ${sdimage_tar}; do
 		if [ -e "/mnt/usb/${NAME}" ]; then
-			untar_image "/mnt/usb/${NAME}" "${SD_DEV}" "sd" "ext4compat"
+			untar_image "/mnt/usb/${NAME}" "${SD_DEV}" "sd" "ext4gpt"
 			DID_SOMETHING=1
 			break
 		fi
@@ -84,7 +85,7 @@ write_images() {
 	DID_SOMETHING=0
 	for NAME in ${emmcimage_tar}; do
 		if [ -e "/mnt/usb/${NAME}" ]; then
-			untar_image "/mnt/usb/${NAME}" "${EMMC_DEV}" "emmc" "ext4compat"
+			untar_image "/mnt/usb/${NAME}" "${EMMC_DEV}" "emmc" "ext4gpt"
 			DID_SOMETHING=1
 			break
 		fi
@@ -105,17 +106,22 @@ write_images() {
 ### U-Boot is unique to every platform and therefore the full process for it
 ###   needs to be replicated and customized to each platform. Some parts of the
 ###   following may be more re-usable than others
-if [ -e "/mnt/usb/${uboot_img}" ]; then
+if [ -e "/mnt/usb/${uboot_img}" ] && [ -e "/mnt/usb/${uboot_dtb}" ]; then
 	echo "========== Writing new U-boot image =========="
 	(
 		set -x
 
 		echo 0 > /sys/block/"${UBOOT_BN}"/force_ro
 		dd bs=512 seek=2 if=/mnt/usb/"${uboot_img}" of=/dev/"${UBOOT_BN}"
+		dd bs=512 seek=138 if=/mnt/usb/"${uboot_dtb}" of=/dev/"${UBOOT_BN}"
+		echo 1 > /sys/block/"${UBOOT_BN}"/force_ro
+
 		if [ -e "/mnt/usb/${uboot_img}.md5" ]; then
 			BYTES=$(wc -c /mnt/usb/"${uboot_img}" | cut -d ' ' -f 1)
 			EXPECTED=$(cut -f 1 -d ' ' /mnt/usb/"${uboot_img}".md5)
-			ACTUAL=$(dd if=/dev/"${UBOOT_BN}" bs=4M | dd skip=2 bs=512 | dd bs=1 count="${BYTES}" | md5sum | cut -f 1 -d ' ')
+			ACTUAL=$(dd if=/dev/"${UBOOT_BN}" bs=4M | \
+			  dd skip=2 bs=512 | dd bs=1 count="${BYTES}" | md5sum | \
+			  cut -f 1 -d ' ')
 			if [ "${ACTUAL}" != "${EXPECTED}" ]; then
 				echo "U-Boot dd verify" >> /tmp/failed
 			fi
