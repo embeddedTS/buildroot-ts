@@ -1,269 +1,197 @@
-#!/bin/bash
+#!/bin/sh
 
-set -o pipefail
+# SPDX-License-Identifier: BSD-2-Clause
+# Copyright (c) 2022 Technologic Systems, Inc. dba embeddedTS
 
-mkdir /mnt/emmc
-mkdir /mnt/sata
+# Edit these variables as needed. When porting, this should be all that
+# needs to change for a new platform. Should be.
+
+# XXX: See if its possible to easily detect a 7800v2 and enable SD for this
+
+# Whole device device node path for eMMC. Assuming it is static each boot.
+EMMC_DEV="/dev/mmcblk0"
+
+# Whole device device node path for SATA. Assuming it is static each boot.
+SATA_DEV="/dev/sda"
+
+# U-Boot is stored on boot partitions of eMMC on platforms compatible with
+# this script.
+UBOOT_DEV="${EMMC_DEV}boot0"
+# The basename of the partition is needed as part of the update process in
+# order to unlock the boot partition for writing.
+UBOOT_BN=$(basename "${UBOOT_DEV}")
+
+
+# Create array of valid file names for each media type
+emmcimage_tar="emmcimage.tar.xz emmcimage.tar.bz2 emmcimage.tar.gz emmcimage.tar"
+emmcimage_img="emmcimage.dd.xz emmcimage.dd.bz2 emmcimage.dd.gz emmcimage.dd"
+emmcimage="${emmcimage_tar} ${emmcimage_img}"
+sataimage_tar="sataimage.tar.xz sataimage.tar.bz2 sataimage.tar.gz sataimage.tar"
+sataimage_img="sataimage.dd.xz sataimage.dd.bz2 sataimage.dd.gz sataimage.dd"
+sataimage="${sataimage_tar} ${sataimage_img}"
+uboot_img="u-boot-spl.kwb"
+
+# A space separated list of all potential accepted image names
+all_images="${emmcimage} ${sataimage} ${uboot_img}"
+
+# Set up LED definitions, this needs to happen before blast_funcs.sh is sourced
+led_init() {
+	grnled_on() { echo 1 > /sys/class/leds/green\:power/brightness ; }
+	grnled_off() { echo 0 > /sys/class/leds/green\:power/brightness ; }
+	redled_on() { echo 1 > /sys/class/leds/red\:status/brightness ; }
+	redled_off() { echo 0 > /sys/class/leds/red\:status/brightness ; }
+
+	led_blinkloop
+}
+
+
+# Once the device nodes/partitions and valid image names are established,
+# then source in the functions that handle the writing processes
+. /mnt/usb/blast_funcs.sh
+
 mkdir /tmp/logs
 
-SATA_PRESENT="0"
-SATA_DEV=$(readlink -f /dev/disk/by-path/platform-f10a8000.sata-ata-1)
-if [ -b "$SATA_DEV" ]; then
-	SATA_PRESENT="1"
-fi
-export SATA_PRESENT SATA_DEV
+# Our default automatic use of the blast functions
+# Rather than calling this function, the calls made here can be integrated
+# in to custom blast processes
+write_images() {
 
-# Turn on red LED to indicate that its processing.
-echo 1 > /sys/class/leds/right-red-led/brightness
-echo 0 > /sys/class/leds/right-green-led/brightness
-
-if [ -e "/mnt/usb/emmcimage.dd.xz" ]; then
-	echo "======= Writing eMMC card image ========"
-	(
-		xzcat /mnt/usb/emmcimage.dd.xz | dd of=/dev/mmcblk0 bs=1M
-		if [ $? -ne 0 ]; then
-			echo "Failed to write disk image" >> /tmp/failed
-			exit 1
-		fi
-
-		# Flush any buffer cache
-		echo 3 > /proc/sys/vm/drop_caches
-
-		LEN=$(xz --list --robot /mnt/usb/emmcimage.dd.xz | tail -1 | cut -f 5)
-		x=$((LEN & 0xFFFF))
-		if [ "$x" -ne 0 ]; then
-			echo "Image not aligned to 64kbyte" >> /tmp/failed
-			exit 1
-		fi
-		LEN=$((LEN / 65536))
-
-		echo "=== Verifying md5sum  from eMMC ==="
-		EXPECTED_MD5=$(cat /mnt/usb/emmcimage.dd.md5 | cut -d ' ' -f 1)
-		if [ $? -ne 0 ]; then
-			echo "emmcimage.dd.md5 file not found" >> /tmp/failed
-			exit 1
-		fi
-
-		EMMC_MD5=$(dd if=/dev/mmcblk0 bs=65536 count=${LEN} | md5sum - | cut -d ' ' -f 1)
-		if [ $? -ne 0 ]; then
-			echo "Failed to read MD5 from disk" >> /tmp/failed
-			exit 1
-		fi
-
-		if [ "${EXPECTED_MD5}" != "${EMMC_MD5}" ]; then
-			echo "MD5 of disk did not match expected" >> /tmp/failed
-			exit 1
-		fi
-
-	) > /tmp/logs/emmc-writefs 2>&1 &
-fi
-
-if [ -e "/mnt/usb/emmcimage.tar.xz" ]; then
-	echo "======= Writing eMMC card filesystem ========"
-	(
-		sgdisk --zap-all /dev/mmcblk0
-		# Create one single GPT linux partition
-		if ! sgdisk -n 0:0:0 -t 0:8300 /dev/mmcblk0; then
-			echo "emmc sgdisk new partition failed" >> /tmp/failed
-			exit 1
-		fi
-
-		if ! mkfs.ext4 /dev/mmcblk0p1 -q < /dev/null; then
-			echo "emmc sgdisk new partition failed" >> /tmp/failed
-			exit 1
-		fi
-
-		if ! mount /dev/mmcblk0p1 /mnt/emmc; then
-			echo "emmc mount failed" >> /tmp/failed
-			exit 1
-		fi
-
-		if ! tar --numeric-owner -xf /mnt/usb/emmcimage.tar.xz -C /mnt/emmc/; then
-			echo "emmc filesystem write failed" >> /tmp/failed
-			exit 1
-		fi
-
-		if [ -e "/mnt/emmc/md5sums.txt" ]; then
-			LINES=$(wc -l /mnt/emmc/md5sums.txt  | cut -f 1 -d ' ')
-			if [ $LINES = 0 ]; then
-				echo "==========MD5sum file blank==========="
-				echo "mmcblk0 md5sum file is blank" >> /tmp/failed
-				exit 1
-			fi
-			# Drop caches so we have to reread all files
-			echo 3 > /proc/sys/vm/drop_caches
-			cd /mnt/emmc/
-			md5sum -c md5sums.txt > /tmp/emmc_md5sums
-			if [ $? != 0 ]; then
-				echo "mmcblk0 filesystem verify" >> /tmp/failed
-				exit 1
-			fi
-			cd /
-		fi
-
-		if ! umount /mnt/emmc; then
-			echo "Failed to unmount" >> /tmp/failed
-			exit 1
-		fi
-
-	) > /tmp/logs/emmc-writefs 2>&1 &
-fi
-
-if [ "$SATA_PRESENT" == "1" ]; then
-	if [ -e "/mnt/usb/sataimage.dd.xz" ]; then
-	echo "======= Writing sata card image ========"
-	(
-		xzcat /mnt/usb/sataimage.dd.xz | dd of=${SATA_DEV} bs=1M
-		if [ $? -ne 0 ]; then
-			echo "Failed to write disk image" >> /tmp/failed
-			exit 1
-		fi
-
-		# Flush any buffer cache
-		echo 3 > /proc/sys/vm/drop_caches
-
-		LEN=$(xz --list --robot /mnt/usb/sataimage.dd.xz | tail -1 | cut -f 5)
-		x=$((LEN & 0xFFFF))
-		if [ "$x" -ne 0 ]; then
-			echo "Image not aligned to 64kbyte" >> /tmp/failed
-			exit 1
-		fi
-		LEN=$((LEN / 65536))
-
-		echo "=== Verifying md5sum  from sata ==="
-		EXPECTED_MD5=$(cat /mnt/usb/sataimage.dd.md5 | cut -d ' ' -f 1)
-		if [ $? -ne 0 ]; then
-			echo "sataimage.dd.md5 file not found" >> /tmp/failed
-			exit 1
-		fi
-
-		SATA_MD5=$(dd if=${SATA_DEV} bs=65536 count=${LEN} | md5sum - | cut -d ' ' -f 1)
-		if [ $? -ne 0 ]; then
-			echo "Failed to read MD5 from disk" >> /tmp/failed
-			exit 1
-		fi
-
-		if [ "${EXPECTED_MD5}" != "${SATA_MD5}" ]; then
-			echo "MD5 of disk did not match expected" >> /tmp/failed
-			exit 1
-		fi
-
-	) > /tmp/logs/sata-writefs 2>&1 &
-fi
-
-if [ -e "/mnt/usb/sataimage.tar.xz" ]; then
-	echo "======= Writing sata card filesystem ========"
-	(
-		sgdisk --zap-all "$SATA_DEV"
-		# Create one single GPT linux partition
-		if ! sgdisk -n 0:0:0 -t 0:8300 ${SATA_DEV}; then
-			echo "sata sgdisk new partition failed"  >> /tmp/failed
-			exit 1
-		fi
-
-		if ! mkfs.ext4 ${SATA_DEV}1 -q < /dev/null; then
-			echo "sata sgdisk new partition failed"  >> /tmp/failed
-			exit 1
-		fi
-
-		if ! mount ${SATA_DEV}1 /mnt/sata; then
-			echo "sata mount failed"  >> /tmp/failed
-			exit 1
-		fi
-
-		if ! tar --numeric-owner -xf /mnt/usb/sataimage.tar.xz -C /mnt/sata/; then
-			echo "sata filesystem write failed"  >> /tmp/failed
-			exit 1
-		fi
-
-		if [ -e "/mnt/sata/md5sums.txt" ]; then
-			LINES=$(wc -l /mnt/sata/md5sums.txt  | cut -f 1 -d ' ')
-			if [ $LINES = 0 ]; then
-				echo "==========MD5sum file blank==========="
-				echo "sata md5sum file is blank" >> /tmp/failed
-				exit 1
-			fi
-			# Drop caches so we have to reread all files
-			echo 3 > /proc/sys/vm/drop_caches
-			cd /mnt/sata/
-			md5sum -c md5sums.txt > /tmp/sata_md5sums
-			if [ $? != 0 ]; then
-				echo "sata filesystem verify" >> /tmp/failed
-				exit 1
-			fi
-			cd /
-		fi
-
-		if ! umount /mnt/sata; then
-			echo "Failed to unmount" >> /tmp/failed
-			exit 1
-		fi
-
-	) > /tmp/logs/sata-writefs 2>&1 &
-fi
-fi
-
-### U-boot ###
-if [ -e "/mnt/usb/u-boot-spl.kwb" ]; then
-	echo "============== Updating U-Boot =============="
-	(
-		# Unlock boot0 partition
-		echo 0 > /sys/block/mmcblk0boot0/force_ro
-
-		# Write U-Boot binary to boot0
-		dd if=/mnt/usb/u-boot-spl.kwb of=/dev/mmcblk0boot0 conv=fsync
-		if [ $? -ne 0 ]; then
-			echo "Failed to write U-Boot to disk" >> /tmp/failed
-		fi
-
-		# Lock boot0 partition
-		echo 1 > /sys/block/mmcblk0boot0/force_ro
-
-		# Check MD5
-		if [ -e /mnt/usb/u-boot-spl.kwb.md5 ]; then
-			echo "===== Checking md5sum of U-Boot binary ====="
-			# Flush any buffer cache
-			echo 3 > /proc/sys/vm/drop_caches
-
-
-			EXPECTED_MD5=$(cat /mnt/usb/u-boot-spl.kwb.md5 | cut -d ' ' -f 1)
-
-			imgsize=$(stat -L -t /mnt/usb/u-boot-spl.kwb| cut -d ' ' -f 2)
-			UBOOT_MD5=$(dd if=/dev/mmcblk0boot0 bs=1 count=${imgsize} | md5sum - | cut -d ' ' -f 1)
-			if [ $? -ne 0 ]; then
-				echo "Failed U-Boot md5sum readback" >> /tmp/failed
-			fi
-
-			if [ "${EXPECTED_MD5}" != "${UBOOT_MD5}" ]; then
-				echo "MD5 of U-Boot read did not match expected" >> /tmp/failed
-			fi
-		fi
-	) > /tmp/logs/spi-bootimg 2>&1 &
-fi
-
-sync
-wait
-
+### Check for and handle eMMC images
+# Order of search preferences handled by emmcimage variable
 (
-# Blink green led if it works.  Blink red if bad things happened
-if [ ! -e /tmp/failed ]; then
-	echo 0 > /sys/class/leds/right-red-led/brightness
-	echo "All images wrote correctly!"
-	while true; do
-		sleep 1
-		echo 1 > /sys/class/leds/right-green-led/brightness
-		sleep 1
-		echo 0 > /sys/class/leds/right-green-led/brightness
+	DID_SOMETHING=0
+	for NAME in ${emmcimage_tar}; do
+		if [ -e "/mnt/usb/${NAME}" ]; then
+			untar_image "/mnt/usb/${NAME}" "${EMMC_DEV}" "emmc" "ext4gpt"
+			DID_SOMETHING=1
+			break
+		fi
 	done
-else
-	echo 0 > /sys/class/leds/right-green-led/brightness
-	echo "One or more images failed! $(cat /tmp/failed)"
-	echo "Check /tmp/logs for more information."
-	while true; do
-		sleep 1
-		echo 1 > /sys/class/leds/right-red-led/brightness
-		sleep 1
-		echo 0 > /sys/class/leds/right-red-led/brightness
-	done
-fi
+
+	if [ ${DID_SOMETHING} -ne 1 ]; then
+		for NAME in ${emmcimage_img}; do
+			if [ -e "/mnt/usb/${NAME}" ]; then
+				dd_image "/mnt/usb/${NAME}" "${EMMC_DEV}" "emmc"
+				break
+			fi
+		done
+	fi
+
+	wait
 ) &
+
+### Check for and handle SATA images
+# Order of search preferences handled by emmcimage variable
+(
+	# Check to see that the SATA device is actually sata!
+        # It should be, but if there is any issue
+        # with the drive it may not be recognized and then SATA_DEV could end
+	# up pointing to USB. But first, check to see if any SATA images
+	# are present on disk to prevent extraneous output
+	SATA_IMAGES=0
+	for NAME in ${sataimage}; do
+		if [ -e "/mnt/usb/${NAME}" ]; then SATA_IMAGES=1; fi
+	done
+
+	if [ ${SATA_IMAGES} -eq 0 ]; then exit; fi
+
+	readlink /sys/class/block/"$(basename ${SATA_DEV})" | grep sata >/dev/null || err_exit "SATA disk not found!"
+
+	DID_SOMETHING=0
+	for NAME in ${sataimage_tar}; do
+		if [ -e "/mnt/usb/${NAME}" ]; then
+			untar_image "/mnt/usb/${NAME}" "${SATA_DEV}" "sata" "ext4gpt"
+			DID_SOMETHING=1
+			break
+		fi
+	done
+
+	if [ ${DID_SOMETHING} -ne 1 ]; then
+		for NAME in ${sataimage_img}; do
+			if [ -e "/mnt/usb/${NAME}" ]; then
+				dd_image "/mnt/usb/${NAME}" "${SATA_DEV}" "sata"
+				break
+			fi
+		done
+	fi
+
+	wait
+) &
+
+### U-Boot is unique to every platform and therefore the full process for it
+###   needs to be replicated and customized to each platform. Some parts of the
+###   following may be more re-usable than others
+if [ -e "/mnt/usb/${uboot_img}" ]; then
+	echo "========== Writing new U-boot image =========="
+	(
+		set -x
+
+		echo 0 > /sys/block/"${UBOOT_BN}"/force_ro
+		dd bs=1024 if=/mnt/usb/"${uboot_img}" of="${UBOOT_DEV}" \
+		  conv=fsync || err_exit "Write U-Boot"
+		if [ -e "/mnt/usb/${uboot_img}.md5" ]; then
+			BYTES=$(wc -c /mnt/usb/"${uboot_img}" | cut -d ' ' -f 1)
+			EXPECTED=$(cut -f 1 -d ' ' /mnt/usb/"${uboot_img}".md5)
+			ACTUAL=$(dd if="${UBOOT_DEV}" bs=4M | head -c "${BYTES}" | md5sum | cut -f 1 -d ' ')
+			if [ "${ACTUAL}" != "${EXPECTED}" ]; then
+				err_exit "Verify U-Boot"
+			fi
+		fi
+	) > /tmp/logs/u-boot-writeimage 2>&1 &
+fi
+
+
+}
+
+# This is our automatic capture of disk images
+capture_images() {
+	if [ -b "${EMMC_DEV}" ]; then
+		capture_img_or_tar_from_disk "${EMMC_DEV}" "/mnt/usb" "emmc"
+	fi
+
+	# Only capture an image from SATA if SATA_DEV is a SATA device
+	# and the device node is a block device.
+	readlink /sys/class/block/"$(basename ${SATA_DEV})" | grep sata >/dev/null
+	if [ $? -eq 0 ] && [ -b "${SATA_DEV}" ] && [ ! -e /tmp/failed ]; then
+		capture_img_or_tar_from_disk "${SATA_DEV}" "/mnt/usb" "sata"
+	fi
+}
+
+blast_run() {
+	# Check for any one of the valid image sources, if none exist, then start
+	# the image capture process. Note that, if uboot_img or fpga_* exist, then
+	# no images are captured. If they do not exist, neither are captured as
+	# this is something that is not really standard and not something to
+	# replicate between units and should rather be from official source
+	# binaries
+	USB_HAS_VALID_IMAGES=0
+	for NAME in ${all_images}; do
+		if [ -e "/mnt/usb/${NAME}" ]; then
+			USB_HAS_VALID_IMAGES=1
+		fi
+	done
+
+	if [ ${USB_HAS_VALID_IMAGES} -eq 0 ]; then
+		# Need to remount our base dir RW
+		mount -oremount,rw /mnt/usb
+		capture_images
+		mount -oremount,ro /mnt/usb
+	else
+		write_images
+	fi
+
+
+	# Wait for all processes to complete
+	wait
+
+	# Touch /tmp/completed to tell the LED blinking loop to indicate done
+	touch /tmp/completed
+
+	# If anything failed at this point, be noisy on console about it
+	if [ -e /tmp/failed ] ;then
+		echo "One or more images failed! $(cat /tmp/failed)"
+		echo "Check /tmp/logs for more information."
+	else
+		echo "All images wrote correctly!"
+	fi
+}
