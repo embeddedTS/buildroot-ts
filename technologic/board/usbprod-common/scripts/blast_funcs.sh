@@ -236,16 +236,34 @@ dd_image() {
 
 	echo "======= Writing ${HUMAN_NAME} disk image ========"
 	(
+		# In order to save CPU and IO time on decompressing the source
+		# file twice, use some FIFO magic to get the length of the image
+		# while we are writing it to disk. This involves a couple of temp
+		# files and directories that later get cleaned up.
+
 		set -x
 
+		BYTES_CNT_F=$(mktemp)
+		FIFO_DIR=$(mktemp -d)
+
+		# Create FIFO and start wc process
+		mkfifo "${FIFO_DIR}"/fifo || err_exit "dd mkfifo"
+		wc -c < "${FIFO_DIR}"/fifo > "${BYTES_CNT_F}" & WC_PID=$!
+
+		# Get the correct command to stream decompress, then run the
+		# file through tee to our wc process above and then in to the
+		# dd process
+		# XXX: Consider replacing dd with cat or redirect and sync?
 		CMD=$(get_stream_decomp "${SRC_DD}")
-		${CMD} "${SRC_DD}" | dd bs=4M of="${DST_DEV}" conv=notrunc,fsync \
+		${CMD} "${SRC_DD}" | tee "${FIFO_DIR}"/fifo | \
+		  dd bs=4M of="${DST_DEV}" conv=fsync \
 		  || err_exit "${DST_DEV} dd write"
+		wait $WC_PID
 
 		MD5SUM="${SRC_DD%%.*}"
 		MD5SUM="${MD5SUM}.dd.md5"
 		if [ -e "${MD5SUM}" ]; then
-			BYTES=$(${CMD} "${SRC_DD}" | wc -c)
+			BYTES=$(cat "${BYTES_CNT_F}")
 			EXPECTED=$(cut -f 1 -d ' ' "${MD5SUM}")
 			ACTUAL=$(head "${DST_DEV}" -c "${BYTES}" | md5sum | \
 			  cut -f 1 -d ' ')
@@ -253,6 +271,11 @@ dd_image() {
 				echo "${DST_DEV} dd verify" >> /tmp/failed
 			fi
 		fi
+
+		# Clean up fifo and temp files
+		rm -rf "${FIFO_DIR}" || err_exit "dd rm fifo dir"
+		rm "${BYTES_CNT_F}" || err_exit "dd rm bytes count file"
+
 	) > /tmp/logs/"${HUMAN_NAME}"-writeimage 2>&1 &
 }
 
