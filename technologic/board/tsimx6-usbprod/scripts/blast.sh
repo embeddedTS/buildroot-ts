@@ -29,9 +29,10 @@ sataimage_tar="sataimage.tar.xz sataimage.tar.bz2 sataimage.tar.gz sataimage.tar
 sataimage_img="sataimage.dd.xz sataimage.dd.bz2 sataimage.dd.gz sataimage.dd"
 sataimage="${sataimage_tar} ${sataimage_img}"
 uboot_img="u-boot.imx"
+micro_bin="micro-update.bin"
 
 # A space separated list of all potential accepted image names
-all_images="${sdimage} ${emmcimage} ${sataimage} ${uboot_img}"
+all_images="${sdimage} ${emmcimage} ${sataimage} ${uboot_img} ${micro_bin}"
 
 # Set up LED definitions, this needs to happen before blast_funcs.sh is sourced
 led_init() {
@@ -55,6 +56,14 @@ mkdir /tmp/logs
 # Rather than calling this function, the calls made here can be integrated
 # in to custom blast processes
 write_images() {
+### Check for an handle microcontroller updates.
+# This runs first since this will hard reboot if there is an update
+(
+	tsmicroupdate "/mnt/usb/${micro_bin}"
+	if [ $? != 0 ]; then
+		err_exit "Microcontroller update failed"
+	fi
+)
 
 ### Check for and handle SD images
 # Order of search preferences handled by sdimage variable
