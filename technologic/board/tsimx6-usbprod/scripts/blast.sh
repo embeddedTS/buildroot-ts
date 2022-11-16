@@ -56,14 +56,16 @@ mkdir /tmp/logs
 # Rather than calling this function, the calls made here can be integrated
 # in to custom blast processes
 write_images() {
+
 ### Check for an handle microcontroller updates.
 # This runs first since this will hard reboot if there is an update
-(
-	tsmicroupdate "/mnt/usb/${micro_bin}"
-	if [ $? != 0 ]; then
-		err_exit "Microcontroller update failed"
-	fi
-)
+if [ -e "/mnt/usb/${micro_bin}" ]; then
+	echo "========== Writing update binary to Microcontroller =========="
+	(
+		tsmicroupdate "/mnt/usb/${micro_bin}" || \
+			err_exit "Microcontroller update failed"
+	) > /tmp/logs/microcontroller-update 2>&1
+fi
 
 ### Check for and handle SD images
 # Order of search preferences handled by sdimage variable
