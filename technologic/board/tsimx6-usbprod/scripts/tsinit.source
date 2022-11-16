@@ -36,11 +36,11 @@ elif test ${model} = '7970'; then
         if test ${rev} > 'E'; then
                 if load usb ${bootpart} ${fdtaddr} /boot/imx6${cpu}-ts7970-revf.dtb; then
                         echo Loaded TS-7970 Rev F device tree;
-                elif load usb ${bootdev} ${bootpart} ${fdtaddr} /boot/imx6${cpu}-ts7970.dtb; then
+                elif load usb ${bootpart} ${fdtaddr} /boot/imx6${cpu}-ts7970.dtb; then
                         echo Loaded TS-7970 device tree;
                 fi
         else
-                if load usb ${bootdev} ${bootpart} ${fdtaddr} /boot/imx6${cpu}-ts7970.dtb; then
+                if load usb ${bootpart} ${fdtaddr} /boot/imx6${cpu}-ts7970.dtb; then
                         echo Loaded TS-7970 device tree;
                 fi
         fi
