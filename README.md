@@ -49,7 +49,7 @@ We will update the Buildroot release tag used as time goes on, we will only push
 | Product | Buildroot base defconfig | USB Image Replicator |
 |---------|--------------------------|-------------------------|
 | TS-4100 | [ts4100_defconfig](#ts4100_defconfig) | [tsimx6ul_usbprod_defconfig](#tsimx6ul_usbprod_defconfig) |
-| TS-4900 | | [tsimx6_usbprod_defconfig](#tsimx6_usbprod_defconfig) |
+| TS-4900 | [tsimx6_defconfig](#tsimx6_defconfig) | [tsimx6_usbprod_defconfig](#tsimx6_usbprod_defconfig) |
 | TS-7100 | [ts7250v3_defconfig](#ts7250v3_defconfig) |  |
 | TS-7250-V3 | [ts7250v3_defconfig](#ts7250v3_defconfig) | [ts7250v3_usbprod_defconfig](#ts7250v3_usbprod_defconfig)  |
 | TS-7400-V2| [ts7400v2_defconfig](#ts7400v2_defconfig) | [tsimx28_usbprod_defconfig](#tsimx28_usbprod_defconfig) |
@@ -57,8 +57,8 @@ We will update the Buildroot release tag used as time goes on, we will only push
 | TS-7670 | [ts7670_defconfig](#ts7670_defconfig) | [tsimx28_usbprod_defconfig](#tsimx28_usbprod_defconfig) |
 | TS-7680 | [ts7680_defconfig](#ts7680_defconfig) |  |
 | TS-7840 | [tsa38x_defconfig](#tsa38x_defconfig) | [tsa38x_usbprod_defconfig](#tsa38x_usbprod_defconfig) |
-| TS-7970 | | [tsimx6_usbprod_defconfig](#tsimx6_usbprod_defconfig) |
-| TS-TPC-7990 | | [tsimx6_usbprod_defconfig](#tsimx6_usbprod_defconfig) |
+| TS-4900 | [tsimx6_defconfig](#tsimx6_defconfig) | [tsimx6_usbprod_defconfig](#tsimx6_usbprod_defconfig) |
+| TS-4900 | [tsimx6_defconfig](#tsimx6_defconfig) | [tsimx6_usbprod_defconfig](#tsimx6_usbprod_defconfig) |
 
 
 ### ts4100_defconfig
