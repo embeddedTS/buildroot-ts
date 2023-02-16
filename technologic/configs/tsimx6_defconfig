@@ -1,0 +1,23 @@
+BR2_arm=y
+BR2_cortex_a9=y
+BR2_ARM_ENABLE_NEON=y
+BR2_ARM_ENABLE_VFP=y
+BR2_ARM_EABI=y
+BR2_ARM_FPU_VFPV3=y
+# BR2_PIC_PIE is not set
+BR2_RELRO_NONE=y
+BR2_KERNEL_HEADERS_4_9=y
+BR2_TOOLCHAIN_BUILDROOT_LOCALE=y
+BR2_TARGET_GENERIC_HOSTNAME="tsimx6"
+BR2_LINUX_KERNEL=y
+BR2_LINUX_KERNEL_CUSTOM_TARBALL=y
+BR2_LINUX_KERNEL_CUSTOM_TARBALL_LOCATION="$(call github,embeddedTS,linux-tsimx,ts-imx_4.9.11_1.0.0_ga)/linux-ts-imx_4.9.11_1.0.0_ga.tar.gz"
+BR2_LINUX_KERNEL_DEFCONFIG="ts4900"
+BR2_LINUX_KERNEL_UIMAGE=y
+BR2_LINUX_KERNEL_UIMAGE_LOADADDR="0x10008000"
+BR2_LINUX_KERNEL_DTS_SUPPORT=y
+BR2_LINUX_KERNEL_INTREE_DTS_NAME="imx6q-ts4900 imx6q-ts4900-2 imx6q-ts4900-14 imx6q-ts4900-15 imx6q-ts4900-2d imx6q-ts4900-reve imx6q-ts4900-reve-2 imx6q-ts4900-reve-14 imx6q-ts4900-reve-15 imx6q-ts4900-reve-2d imx6q-ts7970 imx6q-ts7970-revf imx6q-ts7990-lxd-revb imx6q-ts7990-lxd imx6q-ts7990-microtips-revb imx6q-ts7990-microtips imx6q-ts7990-okaya-revb imx6q-ts7990-okaya imx6dl-ts4900 imx6dl-ts4900-2 imx6dl-ts4900-14 imx6dl-ts4900-15 imx6dl-ts4900-2d imx6dl-ts4900-reve imx6dl-ts4900-reve-2 imx6dl-ts4900-reve-14 imx6dl-ts4900-reve-15 imx6dl-ts4900-reve-2d imx6dl-ts7970 imx6dl-ts7970-revf imx6dl-ts7990-lxd-revb imx6dl-ts7990-lxd imx6dl-ts7990-microtips-revb imx6dl-ts7990-microtips imx6dl-ts7990-okaya-revb imx6dl-ts7990-okaya"
+BR2_LINUX_KERNEL_INSTALL_TARGET=y
+BR2_PACKAGE_BUSYBOX_SHOW_OTHERS=y
+BR2_PACKAGE_TS4900_FPGA=y
+BR2_PACKAGE_TS4900_UTILS=y
