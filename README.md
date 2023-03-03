@@ -148,16 +148,14 @@ When booted from a stock image, a shim script is used to install U-Boot over top
 
 This is not an issue for the most common use-case of writing custom images to devices. For example, a TS-7670 ordered from us will have eMMC pre-programmed with our stock image. It would be possible with the Image Replicator USB drive inserted, for the unit to boot, install a U-Boot bootloader to the eMMC flash, reboot itself, and start the Image Replicator process to write out full custom images to eMMC or to attached microSD cards. Image Capture of a stock image with this tool is difficult due to the process required to boot the Image Replicator. Please contact our [support team](https://support.embeddedts.com/support/home) for assistance if you need to run this process.
 
-### tsimx6ul_usbprod_defconfig
-* Image Replication tool for TS-4100 and TS-7553-V2 devices
-* Able to capture disk images and/or write out disk images to all supported media on devices
-* Outputs `tsimx6ul-usb-image-replicator-rootfs.tar.xz` and `tsimx6ul-usb-image-replicator.dd.xz` that can be written to a USB drive and booted on supported devices
-* The `tsimx6ul-usb-image-replicator.dd.xz` file is self expanding after first boot. It is intended to make the image capture process easier
-* See the respective product manual for more information on the Image Replicator tool
+### tsimx6_defconfig
+* Supports TS-4900, TS-7970, and TS-TPC-7990 devices
+* Generates a minimal Linux with hardware support (based on 5.10 kernel)
+* Outputs `rootfs.tar.xz` which can be written to any boot device for the platform: USB, eMMC, SATA, NFS, etc.
 
 Can be built with (See [Using Docker](#using-docker) for how to build in Docker container):
 
-	make tsimx6ul_usbprod_defconfig all
+	make tsimx6_defconfig all
 
 ### tsimx6_usbprod_defconfig
 * Image Replication tool for TS-4900, TS-7970, and TS-TPC-7990 devices
@@ -169,6 +167,17 @@ Can be built with (See [Using Docker](#using-docker) for how to build in Docker 
 Can be built with (See [Using Docker](#using-docker) for how to build in Docker container):
 
 	make tsimx6_usbprod_defconfig all
+
+### tsimx6ul_usbprod_defconfig
+* Image Replication tool for TS-4100 and TS-7553-V2 devices
+* Able to capture disk images and/or write out disk images to all supported media on devices
+* Outputs `tsimx6ul-usb-image-replicator-rootfs.tar.xz` and `tsimx6ul-usb-image-replicator.dd.xz` that can be written to a USB drive and booted on supported devices
+* The `tsimx6ul-usb-image-replicator.dd.xz` file is self expanding after first boot. It is intended to make the image capture process easier
+* See the respective product manual for more information on the Image Replicator tool
+
+Can be built with (See [Using Docker](#using-docker) for how to build in Docker container):
+
+	make tsimx6ul_usbprod_defconfig all
 
 ### ts7250v3_usbprod_defconfig
 * Supports TS-7250-V3 and TS-7100 devices
