@@ -1,0 +1,13 @@
+config BR2_PACKAGE_TSSUPERVISORUPDATE
+	bool "tssupervisorupdate"
+	help
+	  Tool for updating the supervisory microcntroller on certain
+	  embeddedTS platforms.
+
+	  Currently used for:
+	  - TS-7250-V3	(>= PCB Rev. B)
+	  - TS-7970 	(>= PCB Rev. H)
+
+	  NOTE! There is no harm in running this application on
+	  unsupported platforms or PCB revisions. It will return an
+	  error however.

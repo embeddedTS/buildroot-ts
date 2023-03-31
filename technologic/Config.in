@@ -19,15 +19,15 @@ choice
 	source "$BR2_EXTERNAL_TECHNOLOGIC_PATH/package/ts7820-utils/Config.in"
 endchoice
 
-menu "Scripts for Device Support"
-	source "$BR2_EXTERNAL_TECHNOLOGIC_PATH/package/tssilomon-init/Config.in"
-endmenu
-
 menu "Misc Tools for Device Support"
 	source "$BR2_EXTERNAL_TECHNOLOGIC_PATH/package/growpart/Config.in"
 	source "$BR2_EXTERNAL_TECHNOLOGIC_PATH/package/idleinject/Config.in"
+	source "$BR2_EXTERNAL_TECHNOLOGIC_PATH/package/tssupervisorupdate/Config.in"
 endmenu
 
+menu "Scripts for Device Support"
+	source "$BR2_EXTERNAL_TECHNOLOGIC_PATH/package/tssilomon-init/Config.in"
+endmenu
 
 menu "Bootloader Binaries"
 	source "$BR2_EXTERNAL_TECHNOLOGIC_PATH/package/ts7670-uboot/Config.in"
