@@ -60,10 +60,12 @@ We will update the Buildroot release tag used as time goes on, we will only push
 | TS-7970 | [tsimx6_defconfig](#tsimx6_defconfig) | [tsimx6_usbprod_defconfig](#tsimx6_usbprod_defconfig) |
 | TS-TPC-7990 | [tsimx6_defconfig](#tsimx6_defconfig) | [tsimx6_usbprod_defconfig](#tsimx6_usbprod_defconfig) |
 
+All Buildroot base defconfigs abover are compatible with the [Extra Packages defconfig fragment](#extra-packages).
+
 
 ### ts4100_defconfig
 * Supports TS-4100 devices
-* Generates a minimal Linux with hardware support
+* Generates a minimal Linux with hardware support (based on 5.10 kernel)
 * Outputs `rootfs.tar.xz` which can be written to any boot device for the platform: USB, SD, eMMC, etc.
 
 Can be built with (See [Using Docker](#using-docker) for how to build in Docker container):
@@ -72,7 +74,7 @@ Can be built with (See [Using Docker](#using-docker) for how to build in Docker 
 
 ### ts7250v3_defconfig
 * Supports TS-7250-V3 and TS-7100 devices
-* Generates a minimal Linux with hardware support
+* Generates a minimal Linux with hardware support (based on 5.10 kernel)
 * Outputs `rootfs.tar.gz` which can be written to any boot device for the platform: USB, eMMC, etc.
 
 Can be built with (See [Using Docker](#using-docker) for how to build in Docker container):
@@ -81,7 +83,7 @@ Can be built with (See [Using Docker](#using-docker) for how to build in Docker 
 
 ### ts7400v2_defconfig
 * Supports TS-7400-V2 devices with PCB revision B or newer
-* Generates a minimal Linux with hardware support (based on 4.9 kernel)
+* Generates a minimal Linux with hardware support (based on 5.10 kernel)
 * Outputs `sdcard.img` which can be written to to SD or eMMC on the device.
 
 Can be built with (See [Using Docker](#using-docker) for how to build in Docker container):
@@ -90,7 +92,7 @@ Can be built with (See [Using Docker](#using-docker) for how to build in Docker 
 
 ### ts7553v2_defconfig
 * Supports TS-7553-V2 devices
-* Generates a minimal Linux with hardware support (based on 4.9 kernel)
+* Generates a minimal Linux with hardware support (based on 5.10 kernel)
 * Outputs `rootfs.tar.xz` which can be written to any boot device for the platform: USB, SD, eMMC, etc.
 
 Can be built with (See [Using Docker](#using-docker) for how to build in Docker container):
@@ -99,7 +101,7 @@ Can be built with (See [Using Docker](#using-docker) for how to build in Docker 
 
 ### ts7670_defconfig
 * Supports TS-7670 devices with PCB revision D or newer
-* Generates a minimal Linux with hardware support (based on 4.9 kernel)
+* Generates a minimal Linux with hardware support (based on 5.10 kernel)
 * Outputs `sdcard.img` which can be written to to SD or eMMC on the device.
 
 Can be built with (See [Using Docker](#using-docker) for how to build in Docker container):
