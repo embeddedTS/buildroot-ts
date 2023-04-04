@@ -60,7 +60,7 @@ We will update the Buildroot release tag used as time goes on, we will only push
 | TS-7970 | [tsimx6_defconfig](#tsimx6_defconfig) | [tsimx6_usbprod_defconfig](#tsimx6_usbprod_defconfig) |
 | TS-TPC-7990 | [tsimx6_defconfig](#tsimx6_defconfig) | [tsimx6_usbprod_defconfig](#tsimx6_usbprod_defconfig) |
 
-All Buildroot base defconfigs abover are compatible with the [Extra Packages defconfig fragment](#extra-packages).
+All Buildroot base defconfigs above are compatible with the [Extra Packages defconfig fragment](#extra-packages).
 
 
 ### ts4100_defconfig
