@@ -82,7 +82,7 @@ Can be built with (See [Using Docker](#using-docker) for how to build in Docker 
 ### ts7400v2_defconfig
 * Supports TS-7400-V2 devices with PCB revision B or newer
 * Generates a minimal Linux with hardware support (based on 4.9 kernel)
-* Outputs `sdimage.img` which can be written to to SD or eMMC on the device.
+* Outputs `sdcard.img` which can be written to to SD or eMMC on the device.
 
 Can be built with (See [Using Docker](#using-docker) for how to build in Docker container):
 
@@ -100,7 +100,7 @@ Can be built with (See [Using Docker](#using-docker) for how to build in Docker 
 ### ts7670_defconfig
 * Supports TS-7670 devices with PCB revision D or newer
 * Generates a minimal Linux with hardware support (based on 4.9 kernel)
-* Outputs `sdimage.img` which can be written to to SD or eMMC on the device.
+* Outputs `sdcard.img` which can be written to to SD or eMMC on the device.
 
 Can be built with (See [Using Docker](#using-docker) for how to build in Docker container):
 
