@@ -1,0 +1,50 @@
+#!/bin/sh
+#
+# Start idleinject daemon
+#
+
+LEDARG=""
+
+umask 077
+
+start() {
+	printf "Starting idleinject daemon: "
+	start-stop-daemon -S -q -m -p /var/run/idleinject.pid -b --exec /usr/bin/idleinject \
+		-- --maxtemp MAXTEMP $LEDARG
+	if [ $? -eq 0 ]; then
+		echo "OK"
+	else
+		echo "FAIL"
+	fi
+}
+stop() {
+	printf "Stopping idleinject daemon: "
+	start-stop-daemon -K -q -m -p /var/run/idleinject.pid -b --exec /usr/bin/idleinject \
+		-- --maxtemp MAXTEMP $LEDARG
+	if [ $? -eq 0 ]; then
+		echo "OK"
+	else
+		echo "FAIL"
+	fi
+}
+restart() {
+	stop
+	start
+}
+
+case "$1" in
+  start)
+	start
+	;;
+  stop)
+	stop
+	;;
+  restart|reload)
+	restart
+	;;
+  *)
+	echo "Usage: $0 {start|stop|restart}"
+	exit 1
+esac
+
+exit $?
