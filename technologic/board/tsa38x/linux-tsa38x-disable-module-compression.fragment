@@ -1,3 +1,0 @@
-# Configuration fragment to merge in to standard kernel config. Disable compressed
-# kernel modules
-CONFIG_MODULE_COMPRESS=n
