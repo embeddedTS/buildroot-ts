@@ -128,7 +128,7 @@ untar_image() {
 	echo "======= Writing ${HUMAN_NAME} filesystem ========"
 
 	(
-		set -x
+		set -x -o pipefail
 
 		# NOTE: This would be where modifications could be made to
 		# cause this process to set enhanced and high-reliability
@@ -241,7 +241,7 @@ dd_image() {
 		# while we are writing it to disk. This involves a couple of temp
 		# files and directories that later get cleaned up.
 
-		set -x
+		set -x -o pipefail
 
 		BYTES_CNT_F=$(mktemp)
 		FIFO_DIR=$(mktemp -d)
@@ -334,7 +334,7 @@ capture_img_or_tar_from_disk() {
 
 	echo "====== Capturing ${NAME} image from ${SRC_DEV} ======"
 	(
-		set -x
+		set -x -o pipefail
 
 		# Get number of partitions on the source device
 		PART_CNT=$(partx -g "${SRC_DEV}" | wc -l)
