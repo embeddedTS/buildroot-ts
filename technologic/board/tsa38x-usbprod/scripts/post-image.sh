@@ -1,16 +1,58 @@
-#!/bin/bash -x
+#!/bin/bash -e
+
+PLAT="tsa38x"
+TAR_BASE="${PLAT}-usb-image-replicator-rootfs"
+IMG_BASE="${PLAT}-usb-image-replicator"
+TAR_PATH="${BINARIES_DIR}/${TAR_BASE}"
+IMG_PATH="${BINARIES_DIR}/${IMG_BASE}"
+DATE=$(date +"%Y%m%d")
+TAR_DATE_PATH="${TAR_PATH}-${DATE}"
+IMG_DATE_PATH="${IMG_PATH}-${DATE}"
+PLAT_SCRIPTS="${BR2_EXTERNAL_TECHNOLOGIC_PATH}/board/${PLAT}-usbprod/scripts"
+COMM_SCRIPTS="${BR2_EXTERNAL_TECHNOLOGIC_PATH}/board/usbprod-common/scripts"
+
 
 TEMPDIR=$(mktemp -d)
 mkdir "${TEMPDIR}"/boot/
-cp output/images/{*.dtb,zImage,rootfs.cpio.gz} "${TEMPDIR}"/boot/
-cp ../technologic/board/tsa38x-usbprod/scripts/boot.source "${TEMPDIR}"/boot/boot.source
+cp "${BINARIES_DIR}"/{*.dtb,*Image,rootfs.cpio.*} "${TEMPDIR}"/boot/
+cp "${PLAT_SCRIPTS}/boot.source" "${TEMPDIR}"/boot/
 
 echo "Generating U-Boot scripts"
 mkimage -A arm -T script -C none -n 'boot' -d "${TEMPDIR}"/boot/boot.source "${TEMPDIR}"/boot/boot.scr
+mkimage -A arm -T script -C none -n 'boot' -d "${TEMPDIR}"/boot/boot.source "${TEMPDIR}"/boot/boot.ub
 
-DATESTAMP="$(date +%Y%m%d)"
+# Scripts used for capturing/writing images
+cp "${PLAT_SCRIPTS}/blast.sh" "${TEMPDIR}/"
+cp "${COMM_SCRIPTS}/blast_funcs.sh" "${TEMPDIR}/"
+cp "${COMM_SCRIPTS}/sanitize_linux_rootfs.sh" "${TEMPDIR}/"
 
-cp ../technologic/board/tsa38x-usbprod/scripts/blast.sh "${TEMPDIR}/blast.sh"
-tar cJf "output/images/tsa38x-usb-production-rootfs-${DATESTAMP}.tar.xz" -C "${TEMPDIR}" .
+# Remove old files before re-building output images
+rm -f ${TAR_PATH}* ${IMG_PATH}*
 
-rm -r "$TEMPDIR"
+# Create output files
+tar cf "${TAR_DATE_PATH}.tar" -C "${TEMPDIR}" .
+md5sum "${TAR_DATE_PATH}.tar" > "${TAR_DATE_PATH}.tar.md5"
+xz -2 "${TAR_DATE_PATH}.tar"
+ln -sf "${TAR_BASE}-${DATE}.tar.xz" "${TAR_PATH}.tar.xz"
+
+# Create output image
+# Based on genimage.sh from Buildroot
+
+GENIMAGE_TMP="${BUILD_DIR}/genimage.tmp"
+rm -rf "${GENIMAGE_TMP}"
+
+genimage \
+  --rootpath "${TEMPDIR}" \
+  --tmppath "${GENIMAGE_TMP}" \
+  --inputpath "${BINARIES_DIR}" \
+  --outputpath "${BINARIES_DIR}" \
+  --config "${PLAT_SCRIPTS}/genimage.cfg"
+
+# Create output files
+mv "${IMG_PATH}.dd" "${IMG_DATE_PATH}.dd"
+md5sum "${IMG_DATE_PATH}.dd" > "${IMG_DATE_PATH}.dd.md5"
+xz -2 "${IMG_DATE_PATH}.dd"
+ln -sf "${IMG_BASE}-${DATE}.dd.xz" "${IMG_PATH}.dd.xz"
+
+
+rm -r "${TEMPDIR}"
