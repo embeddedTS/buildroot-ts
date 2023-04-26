@@ -11,6 +11,8 @@ Additionally, the TS-SILO supercapacitor script in ts7680-utils
 is named differently than all of the subsequent platforms that
 also have these supercapacitors. Rename it to "tssilomon" so that
 our supporting Buildroot init package is compatible
+
+Signed-off-by: Kris Bahnsen <kris@embeddedTS.com>
 ---
  scripts/Makefile.am                  | 10 +---------
  scripts/{tssupercapmon => tssilomon} |  0
