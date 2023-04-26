@@ -2,26 +2,35 @@
 #
 # Start idleinject daemon
 #
+# Note that the $LEDARG variables below are specifically set up to not error
+# in their use according to shellcheck. This is to pass Buildroot check-package.
+# The issue is that the Buildroot install script will set LEDARG to a space
+# separated flag, i.e. "--led /sys/..." which the script expects to be split.
 
+DAEMON="idleinject"
 LEDARG=""
 
 umask 077
 
 start() {
-	printf "Starting idleinject daemon: "
+	printf 'Starting %s: ' "$DAEMON"
+	# shellcheck disable=SC2086
 	start-stop-daemon -S -q -m -p /var/run/idleinject.pid -b --exec /usr/bin/idleinject \
 		-- --maxtemp MAXTEMP $LEDARG
-	if [ $? -eq 0 ]; then
+	status=$?
+	if [ "$status" -eq 0 ]; then
 		echo "OK"
 	else
 		echo "FAIL"
 	fi
 }
 stop() {
-	printf "Stopping idleinject daemon: "
+	printf 'Stopping %s: ' "$DAEMON"
+	# shellcheck disable=SC2086
 	start-stop-daemon -K -q -m -p /var/run/idleinject.pid -b --exec /usr/bin/idleinject \
 		-- --maxtemp MAXTEMP $LEDARG
-	if [ $? -eq 0 ]; then
+	status=$?
+	if [ "$status" -eq 0 ]; then
 		echo "OK"
 	else
 		echo "FAIL"
@@ -33,18 +42,18 @@ restart() {
 }
 
 case "$1" in
-  start)
-	start
-	;;
-  stop)
-	stop
-	;;
-  restart|reload)
-	restart
-	;;
-  *)
-	echo "Usage: $0 {start|stop|restart}"
-	exit 1
+	start)
+		start
+		;;
+	stop)
+		stop
+		;;
+	restart|reload)
+		restart
+		;;
+	*)
+		echo "Usage: $0 {start|stop|restart}"
+		exit 1
 esac
 
 exit $?
