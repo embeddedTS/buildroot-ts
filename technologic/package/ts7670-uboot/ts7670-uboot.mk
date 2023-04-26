@@ -15,11 +15,8 @@ define TS7670_UBOOT_EXTRACT_CMDS
 	cp $(TS7670_UBOOT_DL_DIR)/$(TS7670_UBOOT_SOURCE) $(@D)
 endef
 
-
 define TS7670_UBOOT_INSTALL_TARGET_CMDS
-        $(INSTALL) -m 0644 -D $(@D)/$(TS7670_UBOOT_SOURCE) $(BINARIES_DIR)/ts7670-uboot.sd
+	$(INSTALL) -m 0644 -D $(@D)/$(TS7670_UBOOT_SOURCE) $(BINARIES_DIR)/ts7670-uboot.sd
 endef
 
-
 $(eval $(generic-package))
-
