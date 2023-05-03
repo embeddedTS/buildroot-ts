@@ -29,9 +29,10 @@ emmcimage_img="emmcimage.dd.xz emmcimage.dd.bz2 emmcimage.dd.gz emmcimage.dd"
 emmcimage="${emmcimage_tar} ${emmcimage_img}"
 uboot_img="SPL"
 uboot_dtb="u-boot-dtb.bin"
+ts7250v3_supervisor_img="ts7250v3-supervisor-update.bin"
 
 # A space separated list of all potential accepted image names
-all_images="${sdimage} ${emmcimage} ${uboot_img}"
+all_images="${sdimage} ${emmcimage} ${uboot_img} ${ts7250v3_supervisor_img}"
 
 # Set up LED definitions, this needs to happen before blast_funcs.sh is sourced
 led_init() {
@@ -54,6 +55,11 @@ mkdir /tmp/logs
 # Rather than calling this function, the calls made here can be integrated
 # in to custom blast processes
 write_images() {
+	OPTS=$(devmem 0x50004008 32)
+	# Will be set to "1" for true or "0" for false
+	export REVC_OR_LATER=$(((OPTS >> 12) & 0x1))
+
+
 
 ### Check for and handle SD images
 # Order of search preferences handled by sdimage variable
@@ -129,7 +135,14 @@ if [ -e "/mnt/usb/${uboot_img}" ] && [ -e "/mnt/usb/${uboot_dtb}" ]; then
 	) > /tmp/logs/u-boot-writeimage 2>&1 &
 fi
 
-
+### Check for and program any supervisory microcontroller updates
+if [ -e "/mnt/usb/${ts7250v3_supervisor_img}" ] && [ "$REVC_OR_LATER" = "1" ]; then
+	echo "========== Writing Microcontroller Update =========="
+	(
+		set -x
+		tssupervisorupdate -u "/mnt/usb/${ts7250v3_supervisor_img}"
+	) > /tmp/logs/supervisor-writeimage 2>&1 &
+fi
 }
 
 # This is our automatic capture of disk images
