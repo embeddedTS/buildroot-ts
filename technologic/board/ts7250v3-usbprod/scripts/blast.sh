@@ -30,9 +30,12 @@ emmcimage="${emmcimage_tar} ${emmcimage_img}"
 uboot_img="SPL"
 uboot_dtb="u-boot-dtb.bin"
 ts7250v3_supervisor_img="ts7250v3-supervisor-update.bin"
+ts7250v3_fpga_reva="ts7250v3-update-fpga-reva"
+ts7250v3_fpga="ts7250v3-update-fpga"
 
 # A space separated list of all potential accepted image names
-all_images="${sdimage} ${emmcimage} ${uboot_img} ${ts7250v3_supervisor_img}"
+all_images="${sdimage} ${emmcimage} ${uboot_img} ${ts7250v3_supervisor_img} \
+	    ${ts7250v3_fpga_reva} ${ts7250v3_fpga}"
 
 # Set up LED definitions, this needs to happen before blast_funcs.sh is sourced
 led_init() {
@@ -142,6 +145,19 @@ if [ -e "/mnt/usb/${ts7250v3_supervisor_img}" ] && [ "$REVC_OR_LATER" = "1" ]; t
 		set -x
 		tssupervisorupdate -u "/mnt/usb/${ts7250v3_supervisor_img}"
 	) > /tmp/logs/supervisor-writeimage 2>&1 &
+fi
+
+### Check for and program any supervisory microcontroller updates
+if [ -e "/mnt/usb/${ts7250v3_fpga}" ] || [ -e "/mnt/usb/${ts7250v3_fpga_reva}" ]; then
+	echo "========== Writing FPGA update =========="
+	(
+		set -x
+		if [ "$REVC_OR_LATER" ]; then
+			/mnt/usb/"${ts7250v3_fpga}"
+		else
+			/mnt/usb/"${ts7250v3_fpga_reva}"
+		fi
+	) > /tmp/logs/fpga-writeimage 2>&1 &
 fi
 }
 
