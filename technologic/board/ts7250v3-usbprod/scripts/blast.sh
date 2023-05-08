@@ -148,15 +148,15 @@ if [ -e "/mnt/usb/${ts7250v3_supervisor_img}" ] && [ "$REVC_OR_LATER" = "1" ]; t
 	) > /tmp/logs/supervisor-writeimage 2>&1 &
 fi
 
-### Check for and program any supervisory microcontroller updates
+### Check for and program any FPGA updates
 if [ -e "/mnt/usb/${ts7250v3_fpga}" ] || [ -e "/mnt/usb/${ts7250v3_fpga_reva}" ]; then
 	echo "========== Writing FPGA update =========="
 	(
 		set -x
 		if [ "$REVC_OR_LATER" ]; then
-			/mnt/usb/"${ts7250v3_fpga}"
+			/mnt/usb/"${ts7250v3_fpga}" || err_exit "${ts7250v3_fpga}"
 		else
-			/mnt/usb/"${ts7250v3_fpga_reva}"
+			/mnt/usb/"${ts7250v3_fpga_reva}" || err_exit "${ts7250v3_fpga_reva}"
 		fi
 	) > /tmp/logs/fpga-writeimage 2>&1 &
 fi
