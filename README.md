@@ -4,7 +4,6 @@ This repository implements BR_EXTERNAL for embeddedTS products. Currently this i
 
 * TS-4100
 * TS-4900
-* TS-7100 (via ts7250v3_defconfig)
 * TS-7250-V3
 * TS-7400-V2
 * TS-7553-V2
@@ -51,7 +50,7 @@ We will update the Buildroot release tag used as time goes on, we will only push
 |---------|--------------------------|-------------------------|
 | TS-4100 | [ts4100_defconfig](#ts4100_defconfig) | [tsimx6ul_usbprod_defconfig](#tsimx6ul_usbprod_defconfig) |
 | TS-4900 | [tsimx6_defconfig](#tsimx6_defconfig) | [tsimx6_usbprod_defconfig](#tsimx6_usbprod_defconfig) |
-| TS-7100 | [ts7250v3_defconfig](#ts7250v3_defconfig) |  |
+| TS-7100 |  |  |
 | TS-7250-V3 | [ts7250v3_defconfig](#ts7250v3_defconfig) | [ts7250v3_usbprod_defconfig](#ts7250v3_usbprod_defconfig)  |
 | TS-7400-V2| [ts7400v2_defconfig](#ts7400v2_defconfig) | [tsimx28_usbprod_defconfig](#tsimx28_usbprod_defconfig) |
 | TS-7553-V2 | [ts7553v2_defconfig](#ts7553v2_defconfig) | [tsimx6ul_usbprod_defconfig](#tsimx6ul_usbprod_defconfig) |
@@ -75,7 +74,7 @@ Can be built with (See [Using Docker](#using-docker) for how to build in Docker 
 	make ts4100_defconfig all
 
 ### ts7250v3_defconfig
-* Supports TS-7250-V3 and TS-7100 devices
+* Supports TS-7250-V3 devices
 * Generates a minimal Linux with hardware support (based on 5.10 kernel)
 * Outputs `rootfs.tar.gz` which can be written to any boot device for the platform: USB, eMMC, etc.
 
@@ -193,7 +192,7 @@ Can be built with (See [Using Docker](#using-docker) for how to build in Docker 
 	make tsimx6ul_usbprod_defconfig all
 
 ### ts7250v3_usbprod_defconfig
-* Supports TS-7250-V3 and TS-7100 devices
+* Supports TS-7250-V3 devices
 * Able to capture disk images and/or write out disk images to all supported media on devices
 * Outputs `ts7250v3-usb-image-replicator-rootfs.tar.xz` and `ts7250v3-usb-image-replicator.dd.xz` that can be written to a USB drive and booted on supported devices
 * The `ts7250v3-usb-image-replicator.dd.xz` file is self expanding after first boot. It is intended to make the image capture process easier
