@@ -143,7 +143,8 @@ if [ -e "/mnt/usb/${ts7250v3_supervisor_img}" ] && [ "$REVC_OR_LATER" = "1" ]; t
 	echo "========== Writing Microcontroller Update =========="
 	(
 		set -x
-		tssupervisorupdate -u "/mnt/usb/${ts7250v3_supervisor_img}"
+		tssupervisorupdate -u "/mnt/usb/${ts7250v3_supervisor_img}" || \
+		  err_exit "tssupervisorupdate"
 	) > /tmp/logs/supervisor-writeimage 2>&1 &
 fi
 
