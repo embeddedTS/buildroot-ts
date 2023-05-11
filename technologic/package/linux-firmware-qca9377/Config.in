@@ -1,0 +1,25 @@
+config BR2_PACKAGE_LINUX_FIRMWARE_QCA9377
+	bool "linux-firmware-qca9377"
+	help
+	  This is a transition package to support BT on the Silex
+	  Wi-Fi / BT module on embeddedTS platforms. Support for
+	  installing this firmware normally has been proposed upstream,
+	  but this is added here until that makes it in to a release.
+
+	  This package provides various binary firmware files (closed
+	  binary blobs) for such devices like LAN, WLAN cards etc.
+
+	  https://git.kernel.org/?p=linux/kernel/git/firmware/linux-firmware.git
+
+if BR2_PACKAGE_LINUX_FIRMWARE_QCA9377
+
+menu "Bluetooth firmware"
+
+config BR2_PACKAGE_LINUX_FIRMWARE_QUALCOMM_9377_BT
+	bool "Qualcomm Atheros QCA9377 Bluetooth"
+	help
+	  Firmware files for QCA9377 bluetooth support.
+
+endmenu # Bluetooth
+
+endif
