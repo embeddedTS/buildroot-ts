@@ -4,12 +4,12 @@ config BR2_PACKAGE_IDLEINJECT
 	help
 	  Userspace CPU Idle Injector
 
-	  Intended for a38x CPUs which do not have correct in-kernel thermal
-	  throttling support at this time. Compatible with nearly every other
-	  CPU as well.
+	  Intended for a38x CPUs which do not have correct in-kernel
+	  thermal throttling support at this time. Compatible with
+	  nearly every other CPU as well.
 
-	  Monitors thermal zone 0 and pauses userspace applications in situations
-	  when temperatures are running high.
+	  Monitors thermal zone 0 and pauses userspace applications in
+	  situations when temperatures are running high.
 
 if BR2_PACKAGE_IDLEINJECT
 
@@ -17,8 +17,8 @@ config BR2_PACKAGE_IDLEINJECT_MAXTEMP
 	string "Thermal trip temperature (in millicelcius)"
 	default "115000"
 	help
-	  Temperature, in millicelcius, when the idleinject tool kicks in
-	  and pauses userspace processes to reduce CPU temperature.
+	  Temperature, in millicelcius, when the idleinject tool kicks
+	  in and pauses userspace processes to reduce CPU temperature.
 
 config BR2_PACKAGE_IDLEINJECT_REDLED
 	bool "Turn on red LED when idleinject is throttling"

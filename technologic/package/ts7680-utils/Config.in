@@ -2,5 +2,6 @@ config BR2_PACKAGE_TS7680_UTILS
 	bool "ts7680-utils"
 	help
 	  Utilities tools for TS-7680 SBC.
-	  Includes tools to communicate with the supervisory microcontroller,
-	  TS-SILO monitor script, and switch IC
+
+	  Includes tools to communicate with the supervisory
+	  microcontroller, TS-SILO monitor script, and switch IC.
