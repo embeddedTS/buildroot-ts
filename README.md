@@ -46,20 +46,20 @@ We will update the Buildroot release tag used as time goes on, we will only push
 
 ## Build instructions
 
-| Product | Buildroot base defconfig | USB Image Replicator |
-|---------|--------------------------|-------------------------|
-| TS-4100 | [ts4100_defconfig](#ts4100_defconfig) | [tsimx6ul_usbprod_defconfig](#tsimx6ul_usbprod_defconfig) |
-| TS-4900 | [tsimx6_defconfig](#tsimx6_defconfig) | [tsimx6_usbprod_defconfig](#tsimx6_usbprod_defconfig) |
-| TS-7100 |  |  |
-| TS-7250-V3 | [ts7250v3_defconfig](#ts7250v3_defconfig) | [ts7250v3_usbprod_defconfig](#ts7250v3_usbprod_defconfig)  |
-| TS-7400-V2| [ts7400v2_defconfig](#ts7400v2_defconfig) | [tsimx28_usbprod_defconfig](#tsimx28_usbprod_defconfig) |
-| TS-7553-V2 | [ts7553v2_defconfig](#ts7553v2_defconfig) | [tsimx6ul_usbprod_defconfig](#tsimx6ul_usbprod_defconfig) |
-| TS-7670 | [ts7670_defconfig](#ts7670_defconfig) | [tsimx28_usbprod_defconfig](#tsimx28_usbprod_defconfig) |
-| TS-7680 | [ts7680_defconfig](#ts7680_defconfig) |  |
-| TS-7800-V2 | [ts7800v2_defconfig](#ts7800v2_defconfig) | [ts7800v2_usbprod_defconfig](#ts7800v2_usbprod_defconfig)  |
-| TS-7840 | [tsa38x_defconfig](#tsa38x_defconfig) | [tsa38x_usbprod_defconfig](#tsa38x_usbprod_defconfig) |
-| TS-7970 | [tsimx6_defconfig](#tsimx6_defconfig) | [tsimx6_usbprod_defconfig](#tsimx6_usbprod_defconfig) |
-| TS-TPC-7990 | [tsimx6_defconfig](#tsimx6_defconfig) | [tsimx6_usbprod_defconfig](#tsimx6_usbprod_defconfig) |
+| Product | Buildroot base defconfig | USB Image Replicator | Specialty |
+|---------|--------------------------|----------------------|-----------|
+| TS-4100 | [ts4100_defconfig](#ts4100_defconfig) | [tsimx6ul_usbprod_defconfig](#tsimx6ul_usbprod_defconfig) ||
+| TS-4900 | [tsimx6_defconfig](#tsimx6_defconfig) | [tsimx6_usbprod_defconfig](#tsimx6_usbprod_defconfig) | [tsimx6_graphical_defconfig](#tsimx6_graphical_defconfig) |
+| TS-7100 | | | |
+| TS-7250-V3 | [ts7250v3_defconfig](#ts7250v3_defconfig) | [ts7250v3_usbprod_defconfig](#ts7250v3_usbprod_defconfig)  ||
+| TS-7400-V2| [ts7400v2_defconfig](#ts7400v2_defconfig) | [tsimx28_usbprod_defconfig](#tsimx28_usbprod_defconfig) ||
+| TS-7553-V2 | [ts7553v2_defconfig](#ts7553v2_defconfig) | [tsimx6ul_usbprod_defconfig](#tsimx6ul_usbprod_defconfig) ||
+| TS-7670 | [ts7670_defconfig](#ts7670_defconfig) | [tsimx28_usbprod_defconfig](#tsimx28_usbprod_defconfig) ||
+| TS-7680 | [ts7680_defconfig](#ts7680_defconfig) |  ||
+| TS-7800-V2 | [ts7800v2_defconfig](#ts7800v2_defconfig) | [ts7800v2_usbprod_defconfig](#ts7800v2_usbprod_defconfig)  ||
+| TS-7840 | [tsa38x_defconfig](#tsa38x_defconfig) | [tsa38x_usbprod_defconfig](#tsa38x_usbprod_defconfig) ||
+| TS-7970 | [tsimx6_defconfig](#tsimx6_defconfig) | [tsimx6_usbprod_defconfig](#tsimx6_usbprod_defconfig) | [tsimx6_graphical_defconfig](#tsimx6_graphical_defconfig) |
+| TS-TPC-7990 | [tsimx6_defconfig](#tsimx6_defconfig) | [tsimx6_usbprod_defconfig](#tsimx6_usbprod_defconfig) | [tsimx6_graphical_defconfig](#tsimx6_graphical_defconfig) |
 
 All Buildroot base defconfigs above are compatible with the [Extra Packages defconfig fragment](#extra-packages).
 
@@ -168,6 +168,16 @@ This is not an issue for the most common use-case of writing custom images to de
 Can be built with (See [Using Docker](#using-docker) for how to build in Docker container):
 
 	make tsimx6_defconfig all
+
+### tsimx6_graphical_defconfig
+* Supports TS-4900, TS-7970, and TS-TPC-7990 devices
+* Generates an example image focused on showcasing the graphical abilities of the i.MX6 CPU
+* Boots to Weston with Wayland/Xwayland support and includes Weston/Wayland demos. Provides Qt5 demos utilizing OpenGLES with a Wayland wrapper taking advantage of the Vivante GPU. Provides a video player able to take advantage of VPU hardware.
+* Outputs `rootfs.tar.xz` which can be written to any boot device for the platform: USB, eMMC, SATA, NFS, etc.
+
+Can be built with (See [Using Docker](#using-docker) for how to build in Docker container):
+
+	make tsimx6_graphical_defconfig all
 
 ### tsimx6_usbprod_defconfig
 * Image Replication tool for TS-4900, TS-7970, and TS-TPC-7990 devices
