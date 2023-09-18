@@ -77,7 +77,7 @@ Can be built with (See [Using Docker](#using-docker) for how to build in Docker 
 ### ts7100_defconfig
 * Supports TS-7100 devices
 * Generates a minimal Linux with hardware support (based on 5.10 kernel)
-* Outputs `rootfs.tar.gz` which can be written to any boot device for the platform: USB, eMMC.
+* Outputs `rootfs.tar.xz` which can be written to any boot device for the platform: USB, eMMC.
 
 Can be built with (See [Using Docker](#using-docker) for how to build in Docker container):
 
@@ -97,7 +97,7 @@ Can be built with (See [Using Docker](#using-docker) for how to build in Docker 
 ### ts7250v3_defconfig
 * Supports TS-7250-V3 devices
 * Generates a minimal Linux with hardware support (based on 5.10 kernel)
-* Outputs `rootfs.tar.gz` which can be written to any boot device for the platform: USB, eMMC, etc.
+* Outputs `rootfs.tar.xz` which can be written to any boot device for the platform: USB, eMMC, etc.
 
 Can be built with (See [Using Docker](#using-docker) for how to build in Docker container):
 
