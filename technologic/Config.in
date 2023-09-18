@@ -40,7 +40,3 @@ menu "Bootloader Binaries"
 	source "$BR2_EXTERNAL_TECHNOLOGIC_PATH/package/ts7670-uboot/Config.in"
 	source "$BR2_EXTERNAL_TECHNOLOGIC_PATH/package/ts7400v2-uboot/Config.in"
 endmenu
-
-menu "Temporary Config Options"
-	source "$BR2_EXTERNAL_TECHNOLOGIC_PATH/package/linux-firmware-qca9377/Config.in"
-endmenu
