@@ -29,16 +29,20 @@ emmcimage_img="emmcimage.dd.xz emmcimage.dd.bz2 emmcimage.dd.gz emmcimage.dd"
 emmcimage="${emmcimage_tar} ${emmcimage_img}"
 uboot_img="SPL"
 uboot_dtb="u-boot-dtb.bin"
+ts7250v3_supervisor_img="ts7250v3-supervisor-update.bin"
+ts7250v3_fpga_reva="ts7250v3-update-fpga-reva"
+ts7250v3_fpga="ts7250v3-update-fpga"
 
 # A space separated list of all potential accepted image names
-all_images="${sdimage} ${emmcimage} ${uboot_img}"
+all_images="${sdimage} ${emmcimage} ${uboot_img} ${ts7250v3_supervisor_img} \
+	    ${ts7250v3_fpga_reva} ${ts7250v3_fpga}"
 
 # Set up LED definitions, this needs to happen before blast_funcs.sh is sourced
 led_init() {
-	grnled_on() { echo 1 > /sys/class/leds/green-led/brightness ; }
-	grnled_off() { echo 0 > /sys/class/leds/green-led/brightness ; }
-	redled_on() { echo 1 > /sys/class/leds/red-led/brightness ; }
-	redled_off() { echo 0 > /sys/class/leds/red-led/brightness ; }
+	grnled_on() { echo 1 > /sys/class/leds/green\:power/brightness ; }
+	grnled_off() { echo 0 > /sys/class/leds/green\:power/brightness ; }
+	redled_on() { echo 1 > /sys/class/leds/red\:indicator/brightness ; }
+	redled_off() { echo 0 > /sys/class/leds/red\:indicator/brightness ; }
 
 	led_blinkloop
 }
@@ -54,6 +58,11 @@ mkdir /tmp/logs
 # Rather than calling this function, the calls made here can be integrated
 # in to custom blast processes
 write_images() {
+	OPTS=$(devmem 0x50004008 32)
+	# Will be set to "1" for true or "0" for false
+	export REVC_OR_LATER=$(((OPTS >> 12) & 0x1))
+
+
 
 ### Check for and handle SD images
 # Order of search preferences handled by sdimage variable
@@ -129,7 +138,28 @@ if [ -e "/mnt/usb/${uboot_img}" ] && [ -e "/mnt/usb/${uboot_dtb}" ]; then
 	) > /tmp/logs/u-boot-writeimage 2>&1 &
 fi
 
+### Check for and program any supervisory microcontroller updates
+if [ -e "/mnt/usb/${ts7250v3_supervisor_img}" ] && [ "$REVC_OR_LATER" = "1" ]; then
+	echo "========== Writing Microcontroller Update =========="
+	(
+		set -x
+		tssupervisorupdate -u "/mnt/usb/${ts7250v3_supervisor_img}" || \
+		  err_exit "tssupervisorupdate"
+	) > /tmp/logs/supervisor-writeimage 2>&1 &
+fi
 
+### Check for and program any FPGA updates
+if [ -e "/mnt/usb/${ts7250v3_fpga}" ] || [ -e "/mnt/usb/${ts7250v3_fpga_reva}" ]; then
+	echo "========== Writing FPGA update =========="
+	(
+		set -x
+		if [ "$REVC_OR_LATER" ]; then
+			/mnt/usb/"${ts7250v3_fpga}" || err_exit "${ts7250v3_fpga}"
+		else
+			/mnt/usb/"${ts7250v3_fpga_reva}" || err_exit "${ts7250v3_fpga_reva}"
+		fi
+	) > /tmp/logs/fpga-writeimage 2>&1 &
+fi
 }
 
 # This is our automatic capture of disk images
