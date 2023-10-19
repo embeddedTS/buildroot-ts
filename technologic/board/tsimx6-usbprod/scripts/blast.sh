@@ -179,10 +179,11 @@ if [ -e "/mnt/usb/${uboot_img}" ]; then
 		# have <val>\0<var> in memory. This may just be an artifact of
 		# how this value is stored as its consistent with a number of
 		# setenv() calls from initialization.
-		eval "$(strings /mnt/usb/${uboot_img} | grep imx_type)"
+		unset imx_type
+		eval "$(strings /mnt/usb/${uboot_img} | grep imx_type |head -n1)"
 		if [ -z "${imx_type}" ]; then
 			# Attempt to extract imx_type from older binary
-			imx_type="$(strings $I | grep -B1 imx_type| head -n1)"
+			imx_type="$(strings /mnt/usb/${uboot_img} | grep -B1 imx_type| head -n1)"
 			if [ -z "${imx_type}" ]; then
 				err_exit "Unable to detect imx_type in image file!";
 			fi

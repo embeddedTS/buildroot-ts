@@ -99,12 +99,9 @@ get_diskpart_path() {
 ### This particular function is set up to always assume whole disk, MBR
 ### partition format, and ext4 (with caveats on features due to U-Boot support
 ### on relevant platforms)
-###
-### TODO: At some point in the future, remove dependency on the part prefix arg
 # Args:
 # 1) Source file, the full path to the tarball
 # 2) Dest. device node, e.g. /dev/sda, /dev/mmcblk1
-#      part prefix is "p"
 # 3) Human readable part name, e.g. "sd", "emmc", "sata" Used for logging
 # 4) Filesystem type [optional]
 #      May be one of:
