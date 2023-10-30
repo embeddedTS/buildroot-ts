@@ -1,0 +1,8 @@
+# mkimage -A arm -T script -C none -n 'boot' -d boot.source boot.scr
+setenv bootargs "console=${console} console=ttymxc0,115200 ro init=/sbin/init;"
+
+load ${devtype} ${devnum}:${distro_bootpart} ${kernel_addr_r} ${prefix}zImage \
+&& load ${devtype} ${devnum}:${distro_bootpart} ${fdt_addr_r} ${prefix}${fdtfile} \
+&& load ${devtype} ${devnum}:${distro_bootpart} ${ramdisk_addr_r} ${prefix}rootfs.cpio.gz \
+&& echo "Booting USB production tool from ${devtype} ${devnum}:${distro_bootpart}..." \
+&& bootz ${kernel_addr_r} ${ramdisk_addr_r}:${filesize} ${fdt_addr_r}
