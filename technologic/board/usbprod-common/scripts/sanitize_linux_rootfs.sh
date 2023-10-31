@@ -27,6 +27,7 @@
 # Generic tests/preperation include:
 #   Remove /etc/ssh/*key*  # Done to ensure each device has unique key
 #   Touch the file /firstboot. This is used in Debian to recreate SSH keys
+#   Touch the file /ssh_regenkeys. This is used in Debian to recreate SSH keys
 #   Remove /etc/machine-id and touch to force systemd to recreate it on boot
 #   Remove /var/lib/dbus/machine-id
 #   Remove /var/log/*, only files, leave folder tree intact
@@ -45,6 +46,7 @@ TMP_DIR="${1}"
 echo "Removing temporary files, SSL keys, apt-get install files, etc."
 rm -rfv "${TMP_DIR}"/etc/ssh/*key*
 touch "${TMP_DIR}"/firstboot
+touch "${TMP_DIR}"/ssh_regenkeys
 rm -rfv "${TMP_DIR}"/etc/machine-id
 rm -rfv "${TMP_DIR}"/var/lib/dbus/machine-id
 
