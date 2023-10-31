@@ -231,7 +231,7 @@ Can be built with (See [Using Docker](#using-docker) for how to build in Docker 
 
 Can be built with (See [Using Docker](#using-docker) for how to build in Docker container):
 
-	make tsimx6ul_usbprod_defconfig all
+	make ts7250v3_usbprod_defconfig all
 
 ### ts7800v2_usbprod_defconfig
 * Image Replication tool for the TS-7800-V2
