@@ -1,0 +1,22 @@
+#!/bin/sh
+
+case "$1" in
+        start)
+                echo "Starting LVGL Demo"
+		echo 0 > /sys/class/graphics/fbcon/cursor_blink
+                start-stop-daemon -S -b -q -m -p /var/run/lvgl-demo.pid -x /usr/bin/ts7100z-lvgl-ui-demo
+                exit $?
+                ;;
+
+        stop)
+                exit 0
+                ;;
+
+        restart)
+		exit 0
+                ;;
+
+        *)
+                echo "Usage: $0 {start|stop|restart}"
+                exit 1
+esac
