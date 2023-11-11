@@ -1,0 +1,20 @@
+config BR2_PACKAGE_LIBLVGL
+	bool "liblvgl"
+	help
+	  Build and install libraries to support the
+	  Light and Versatile Graphics Library (LVGL). This requires
+	  an externally provided lv_conf.h file to handle the build
+	  configuration.
+
+config BR2_PACKAGE_LIBLVGL_LVCONF
+	string "Path to lv_conf.h to build against"
+	depends on BR2_PACKAGE_LIBLVGL
+	help
+	  Path to the lv_conf.h file used to configure the LVGL build.
+
+	  Note that this is required in order to build a useful LVGL
+	  library!
+
+	  The path can be a URL beginning with ftp://, http://,
+	  or https://. Otherwise, it will be assumed to be a file on
+	  disk and will be copied from that path.
