@@ -196,7 +196,7 @@ untar_image() {
 		# Get the correct command to stream decompress the tarball
 		# and run it
 		CMD=$(get_stream_decomp "${SRC_TARBALL}")
-		${CMD} "${SRC_TARBALL}" | tar -x -C "${DST_MOUNT}" || \
+		${CMD} "${SRC_TARBALL}" | tar -xh -C "${DST_MOUNT}" || \
 		  err_exit "untar ${DST_DEV}"
 
 		sync
@@ -372,7 +372,7 @@ capture_img_or_tar_from_disk() {
 			# Copy source disk filesystem to our sparse file backed
 			# mount location. Use tar pipeline to ensure EVERY file
 			# property, permission, etc, is coped intact
-			tar -cf - -C "${TMP_SRC_DIR}"/ . | tar x -C "${TMP_DIR}" \
+			tar -chf - -C "${TMP_SRC_DIR}"/ . | tar xh -C "${TMP_DIR}" \
 			  || err_exit "copy SRC contents to TMP DST"
 
 			# Unmount the SRC disk, we should no longer need this.
@@ -408,7 +408,7 @@ capture_img_or_tar_from_disk() {
 		# as opposed to a whole disk image to save time and space.
 		if [ ${PART_CNT} -eq 1 ]; then
 			echo "Creating compressed tarball"
-			tar cf "${DST_TAR}" -C "${TMP_DIR}"/ . || \
+			tar chf "${DST_TAR}" -C "${TMP_DIR}"/ . || \
 			  err_exit "tar create ${TAR}"
 			# This two-step is needed, and repeated, because we want
 			# the .md5 file to not have any relative paths
