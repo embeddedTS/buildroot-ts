@@ -76,18 +76,42 @@ else
 	usage
 fi
 
-# XXX: The separation of the 3 totals allows for args to build all, base, usbprod, extra...
-echo "WARNING! This will start ${TOTAL} parallel builds!"
+# Across all builds, we do not want to use more than $(nproc) CPUs,
+# but we need to make sure that every build has at least one CPU
+# it can build on.
+NPROC=$(nproc)
+# bash does floor rounding by default
+PER_PROC=$((${NPROC}/${TOTAL}))
+if [ ${PER_PROC} -eq 0 ]; then
+	PER_PROC=1
+fi
+
+echo "WARNING! This will start ${TOTAL} parallel builds, each build using up to ${PER_PROC} CPUs!"
+echo "A potential load of $((${PER_PROC}*${TOTAL})).00!"
 echo "Press ctrl+c to stop this within 10 seconds"
 sleep 10
 
+echo "Building docker container"
 docker build --quiet --tag "buildroot-buildenv-$(git rev-parse --short=12 HEAD)" docker/
+echo "Starting builds"
 
 unset DOCKER_PIDS
 for CONFIG in ${USBPROD[@]}; do
 	BOARD=${CONFIG%_*}
 	mkdir -p "out/${BOARD}"
-	ARG="O=/work/out/${BOARD} ${CONFIG} all"
+
+	# Set up config file
+	ARG="O=/work/out/${BOARD} ${CONFIG}"
+	DOCKER_PID=$(docker run --rm -it --volume $(pwd):/work -w /work -e HOME=/work --user $(id -u):$(id -g) "buildroot-buildenv-$(git rev-parse --short=12 HEAD)" bash -c "make ${ARG} >/work/out/"${BOARD}"/log 2>&1")
+	DOCKER_PIDS="${DOCKER_PID} ${DOCKER_PIDS}"
+
+	# Modify the config file to use set number of CPUs max
+	ARG="./buildroot/utils/config --file /work/out/${BOARD}/.config --set-val BR2_JLEVEL ${PER_PROC}"
+	DOCKER_PID=$(docker run --rm -it --volume $(pwd):/work -w /work -e HOME=/work --user $(id -u):$(id -g) "buildroot-buildenv-$(git rev-parse --short=12 HEAD)" bash -c "${ARG} >/work/out/"${BOARD}"/log 2>&1")
+	DOCKER_PIDS="${DOCKER_PID} ${DOCKER_PIDS}"
+
+	# Start the build
+	ARG="O=/work/out/${BOARD} all"
 	DOCKER_PID=$(docker run -d --rm -it --volume $(pwd):/work -w /work -e HOME=/work --user $(id -u):$(id -g) "buildroot-buildenv-$(git rev-parse --short=12 HEAD)" bash -c "make ${ARG} >/work/out/"${BOARD}"/log 2>&1")
 	DOCKER_PIDS="${DOCKER_PID} ${DOCKER_PIDS}"
 done
@@ -95,7 +119,19 @@ done
 for CONFIG in ${BASE[@]}; do
 	BOARD=${CONFIG%_*}
 	mkdir -p "out/${BOARD}"
-	ARG="O=/work/out/${BOARD} ${CONFIG} all"
+
+	# Set up config file
+	ARG="O=/work/out/${BOARD} ${CONFIG}"
+	DOCKER_PID=$(docker run --rm -it --volume $(pwd):/work -w /work -e HOME=/work --user $(id -u):$(id -g) "buildroot-buildenv-$(git rev-parse --short=12 HEAD)" bash -c "make ${ARG} >/work/out/"${BOARD}"/log 2>&1")
+	DOCKER_PIDS="${DOCKER_PID} ${DOCKER_PIDS}"
+
+	# Modify the config file to use set number of CPUs max
+	ARG="./buildroot/utils/config --file /work/out/${BOARD}/.config --set-val BR2_JLEVEL ${PER_PROC}"
+	DOCKER_PID=$(docker run --rm -it --volume $(pwd):/work -w /work -e HOME=/work --user $(id -u):$(id -g) "buildroot-buildenv-$(git rev-parse --short=12 HEAD)" bash -c "${ARG} >/work/out/"${BOARD}"/log 2>&1")
+	DOCKER_PIDS="${DOCKER_PID} ${DOCKER_PIDS}"
+
+	# Start the build
+	ARG="O=/work/out/${BOARD} all"
 	DOCKER_PID=$(docker run -d --rm -it --volume $(pwd):/work -w /work -e HOME=/work --user $(id -u):$(id -g) "buildroot-buildenv-$(git rev-parse --short=12 HEAD)" bash -c "make ${ARG} >/work/out/"${BOARD}"/log 2>&1")
 	DOCKER_PIDS="${DOCKER_PID} ${DOCKER_PIDS}"
 done
@@ -107,6 +143,11 @@ for CONFIG in ${EXTRA[@]}; do
 
 	# Make the merged defconfig
 	ARG="./buildroot/support/kconfig/merge_config.sh -O /work/out/${BOARD}/ technologic/configs/extra_packages_defconfig technologic/configs/${CONFIG}"
+	DOCKER_PID=$(docker run --rm -it --volume $(pwd):/work -w /work -e HOME=/work --user $(id -u):$(id -g) "buildroot-buildenv-$(git rev-parse --short=12 HEAD)" bash -c "${ARG} >/work/out/"${BOARD}"/log 2>&1")
+	DOCKER_PIDS="${DOCKER_PID} ${DOCKER_PIDS}"
+
+	# Modify the config file to use set number of CPUs max
+	ARG="./buildroot/utils/config --file /work/out/${BOARD}/.config --set-val BR2_JLEVEL ${PER_PROC}"
 	DOCKER_PID=$(docker run --rm -it --volume $(pwd):/work -w /work -e HOME=/work --user $(id -u):$(id -g) "buildroot-buildenv-$(git rev-parse --short=12 HEAD)" bash -c "${ARG} >/work/out/"${BOARD}"/log 2>&1")
 	DOCKER_PIDS="${DOCKER_PID} ${DOCKER_PIDS}"
 
