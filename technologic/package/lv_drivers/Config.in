@@ -1,0 +1,30 @@
+config BR2_PACKAGE_LV_DRIVERS
+	bool "lv_drivers"
+	depends on BR2_PACKAGE_LIBLVGL
+	help
+	  Drivers package for LVGL. This provides a number of interface
+	  routines for things such as libinput, fbdev, wayland, etc. It
+	  builds and installs libraries to the target and provides
+	  headers and libraries for compilation of other packages.
+
+	  This requires LVGL to be enabled and built. This will have
+	  access to lv_conf.h already from LVGL. Additionally, another
+	  configuration file, lv_drv_conf.h, is needed by lv_drivers in
+	  order to configure the build properly.
+
+comment "lv_drivers needs liblvgl"
+	depends on !BR2_PACKAGE_LIBLVGL
+
+config BR2_PACKAGE_LV_DRIVERS_LVDRVCONF
+	string "Path to lv_drv_conf.h to build against"
+	depends on BR2_PACKAGE_LV_DRIVERS
+	help
+	  Path to the lv_drv_conf.h file used to configure the
+	  lv_drviers build.
+
+	  Note that this is required in order to build a useful
+	  lv_drivers library!
+
+	  The path can be a URL beginning with ftp://, http://,
+	  or https://. Otherwise, it will be assumed to be a file on
+	  disk and will be copied from that path.

@@ -19,6 +19,13 @@ choice
 	source "$BR2_EXTERNAL_TECHNOLOGIC_PATH/package/ts7820-utils/Config.in"
 endchoice
 
+menu "Light and Versatile Graphics Library (LVGL)"
+	source "$BR2_EXTERNAL_TECHNOLOGIC_PATH/package/liblvgl/Config.in"
+	source "$BR2_EXTERNAL_TECHNOLOGIC_PATH/package/lv_drivers/Config.in"
+endmenu
+
+source "$BR2_EXTERNAL_TECHNOLOGIC_PATH/package/ts7100z-lvgl-ui-demo/Config.in"
+
 menu "Misc Tools for Device Support"
 	source "$BR2_EXTERNAL_TECHNOLOGIC_PATH/package/growpart/Config.in"
 	source "$BR2_EXTERNAL_TECHNOLOGIC_PATH/package/idleinject/Config.in"
