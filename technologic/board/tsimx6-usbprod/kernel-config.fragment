@@ -1,0 +1,6 @@
+# Disable all of extcon, shouldn't be needed for Image Replicator
+# There is some compile error that originates from drivers/extcon/extcon-adc-jack.c
+# that is a compile warning upgraded to an error
+CONFIG_EXTCON_ADC_JACK=n
+CONFIG_EXTCON_GPIO=n
+CONFIG_EXTCON=n
