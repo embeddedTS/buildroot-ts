@@ -9,8 +9,8 @@ This repository implements BR_EXTERNAL for embeddedTS products. Currently this i
 * TS-7400-V2
 * TS-7553-V2
 * TS-7670
-* TS-7800-V2
 * TS-7680
+* TS-7800-V2
 * TS-7840
 * TS-7970
 * TS-TPC-7970
@@ -83,6 +83,17 @@ Can be built with (See [Using Docker](#using-docker) for how to build in Docker 
 
 	make ts7100_defconfig all
 
+ ### ts7100_usbprod_defconfig
+* Supports TS-7100 devices
+* Able to capture disk images and/or write out disk images to all supported media on devices
+* Outputs `ts7100-usb-image-replicator-rootfs.tar.xz` and `ts7100-usb-image-replicator.dd.xz` that can be written to a USB drive and booted on supported devices
+* The `ts71000-usb-image-replicator.dd.xz` file is self expanding after first boot. It is intended to make the image capture process easier
+* See the respective product manual for more information on the Image Replicator tool
+
+Can be built with (See [Using Docker](#using-docker) for how to build in Docker container):
+
+	make ts7100_usbprod_defconfig all
+
 ### ts7250v3_defconfig
 * Supports TS-7250-V3 devices
 * Generates a minimal Linux with hardware support (based on 5.10 kernel)
@@ -91,6 +102,17 @@ Can be built with (See [Using Docker](#using-docker) for how to build in Docker 
 Can be built with (See [Using Docker](#using-docker) for how to build in Docker container):
 
 	make ts7250v3_defconfig all
+
+ ### ts7250v3_usbprod_defconfig
+* Supports TS-7250-V3 devices
+* Able to capture disk images and/or write out disk images to all supported media on devices
+* Outputs `ts7250v3-usb-image-replicator-rootfs.tar.xz` and `ts7250v3-usb-image-replicator.dd.xz` that can be written to a USB drive and booted on supported devices
+* The `ts7250v3-usb-image-replicator.dd.xz` file is self expanding after first boot. It is intended to make the image capture process easier
+* See the respective product manual for more information on the Image Replicator tool
+
+Can be built with (See [Using Docker](#using-docker) for how to build in Docker container):
+
+	make ts7250v3_usbprod_defconfig all
 
 ### ts7400v2_defconfig
 * Supports TS-7400-V2 devices with PCB revision B or newer
@@ -140,6 +162,17 @@ Can be built with (See [Using Docker](#using-docker) for how to build in Docker 
 
 	make ts7800v2_defconfig all
 
+### ts7800v2_usbprod_defconfig
+* Image Replication tool for the TS-7800-V2
+* Able to capture disk images and/or write out disk images to all supported media on devices
+* Outputs `ts7800v2-usb-image-replicator-rootfs.tar.xz` and `ts7800v2-usb-image-replicator.dd.xz` that can be written to a USB drive and booted on supported devices
+* The `ts7800v2-usb-image-replicator.dd.xz` file is self expanding after first boot. It is intended to make the image capture process easier
+* See the respective product manual for more information on the Image Replicator tool
+
+Can be built with (See [Using Docker](#using-docker) for how to build in Docker container):
+
+	make ts7800v2_usbprod_defconfig all
+
 ### tsa38x_defconfig
 * Supports TS-7840 devices
 * Generates a minimal Linux with hardware support (based on 5.10 kernel)
@@ -148,6 +181,16 @@ Can be built with (See [Using Docker](#using-docker) for how to build in Docker 
 Can be built with (See [Using Docker](#using-docker) for how to build in Docker container):
 
 	make tsa38x_defconfig all
+
+ ### tsa38x_usbprod_defconfig
+* Supports TS-7840 devices
+* Generates a tarball for use on a USB drive to boot the device, run a script named `blast.sh` from the drive to write and verify or capture images from the device media. See the respective product manual for information on this Production Mechanism.
+
+
+Can be built with (See [Using Docker](#using-docker) for how to build in Docker container):
+
+	make tsa38x_usbprod_defconfig all
+This outputs a tarball to `buildroot/output/images/tsa38x-usb-production-rootfs-${DATESTAMP}.tar.xz` intended to be written to a USB drive with one partition which is formatted either `ext2`, `ext3`, `ext4`, or `FAT32 (including vfat)` with an MBR or GPT partition table.
 
 ### tsimx28_usbprod_defconfig
 * Image Replication tool for TS-7670 and TS-7400-V2 device
@@ -162,6 +205,7 @@ Can be built with (See [Using Docker](#using-docker) for how to build in Docker 
 
 #### tsimx28 notes
 * Compatible with stock images as well as our additional supported images, e.g. Linux kernel 4.9 with Debian Stretch.
+* i.MX28 based platforms require a whole disk image to be written through the Image Replicator tool to create a bootable media. This is a limitation of the platforms themselves needing a bootloader present on the boot media. If the goal is to update a few files or unpack a tarball, it is recommended to use the stock initramfs scripting process, e.g. [https://docs.embeddedts.com/TS-7670#Scripting_in_the_initramfs](https://docs.embeddedts.com/TS-7670#Scripting_in_the_initramfs)
 * The Image Replicator tool is **not** compatible with devices that have soldered down NAND flash. Contact our [support team](https://support.embeddedts.com/support/home) if you are working with an older device that uses soldered down NAND flash rather than eMMC.
 
 Devices that are compatible with this Image Replicator tool boot directly to the selected media, SD or eMMC, and are unable to load a kernel from a USB disk.
@@ -171,6 +215,7 @@ When booted from a stock image, a shim script is used to install U-Boot over top
 This is not an issue for the most common use-case of writing custom images to devices. For example, a TS-7670 ordered from us will have eMMC pre-programmed with our stock image. It would be possible with the Image Replicator USB drive inserted, for the unit to boot, install a U-Boot bootloader to the eMMC flash, reboot itself, and start the Image Replicator process to write out full custom images to eMMC or to attached microSD cards. Image Capture of a stock image with this tool is difficult due to the process required to boot the Image Replicator. Please contact our [support team](https://support.embeddedts.com/support/home) for assistance if you need to run this process.
 
 ### tsimx6_defconfig
+**Note! See [#60](https://github.com/embeddedTS/buildroot-ts/issues/60) if using a platform with Silex Wi-Fi devices!**
 * Supports TS-4900, TS-7970, and TS-TPC-7990 devices
 * Generates a minimal Linux with hardware support (based on 5.10 kernel)
 * Outputs `rootfs.tar.xz` which can be written to any boot device for the platform: USB, eMMC, SATA, NFS, etc.
@@ -180,6 +225,7 @@ Can be built with (See [Using Docker](#using-docker) for how to build in Docker 
 	make tsimx6_defconfig all
 
 ### tsimx6_graphical_defconfig
+**Note! See [#58](https://github.com/embeddedTS/buildroot-ts/issues/58) when building this configuration!**
 * Supports TS-4900, TS-7970, and TS-TPC-7990 devices
 * Generates an example image focused on showcasing the graphical abilities of the i.MX6 CPU
 * Boots to Weston with Wayland/Xwayland support and includes Weston/Wayland demos. Provides Qt5 demos utilizing OpenGLES with a Wayland wrapper taking advantage of the Vivante GPU. Provides a video player able to take advantage of VPU hardware.
@@ -210,50 +256,6 @@ Can be built with (See [Using Docker](#using-docker) for how to build in Docker 
 Can be built with (See [Using Docker](#using-docker) for how to build in Docker container):
 
 	make tsimx6ul_usbprod_defconfig all
-
-### ts7100_usbprod_defconfig
-* Supports TS-7100 devices
-* Able to capture disk images and/or write out disk images to all supported media on devices
-* Outputs `ts7100-usb-image-replicator-rootfs.tar.xz` and `ts7100-usb-image-replicator.dd.xz` that can be written to a USB drive and booted on supported devices
-* The `ts71000-usb-image-replicator.dd.xz` file is self expanding after first boot. It is intended to make the image capture process easier
-* See the respective product manual for more information on the Image Replicator tool
-
-Can be built with (See [Using Docker](#using-docker) for how to build in Docker container):
-
-	make ts7100_usbprod_defconfig all
-
-### ts7250v3_usbprod_defconfig
-* Supports TS-7250-V3 devices
-* Able to capture disk images and/or write out disk images to all supported media on devices
-* Outputs `ts7250v3-usb-image-replicator-rootfs.tar.xz` and `ts7250v3-usb-image-replicator.dd.xz` that can be written to a USB drive and booted on supported devices
-* The `ts7250v3-usb-image-replicator.dd.xz` file is self expanding after first boot. It is intended to make the image capture process easier
-* See the respective product manual for more information on the Image Replicator tool
-
-Can be built with (See [Using Docker](#using-docker) for how to build in Docker container):
-
-	make ts7250v3_usbprod_defconfig all
-
-### ts7800v2_usbprod_defconfig
-* Image Replication tool for the TS-7800-V2
-* Able to capture disk images and/or write out disk images to all supported media on devices
-* Outputs `ts7800v2-usb-image-replicator-rootfs.tar.xz` and `ts7800v2-usb-image-replicator.dd.xz` that can be written to a USB drive and booted on supported devices
-* The `ts7800v2-usb-image-replicator.dd.xz` file is self expanding after first boot. It is intended to make the image capture process easier
-* See the respective product manual for more information on the Image Replicator tool
-
-Can be built with (See [Using Docker](#using-docker) for how to build in Docker container):
-
-	make ts7800v2_usbprod_defconfig all
-
-### tsa38x_usbprod_defconfig
-* Supports TS-7840 devices
-* Generates a tarball for use on a USB drive to boot the device, run a script named `blast.sh` from the drive to write and verify or capture images from the device media. See the respective product manual for information on this Production Mechanism.
-
-
-Can be built with (See [Using Docker](#using-docker) for how to build in Docker container):
-
-	make tsa38x_usbprod_defconfig all
-This outputs a tarball to `buildroot/output/images/tsa38x-usb-production-rootfs-${DATESTAMP}.tar.xz` intended to be written to a USB drive with one partition which is formatted either `ext2`, `ext3`, `ext4`, or `FAT32 (including vfat)` with an MBR or GPT partition table.
-
 
 ## Extra Packages
 
