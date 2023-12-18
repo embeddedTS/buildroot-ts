@@ -6,7 +6,7 @@
 # Edit these variables as needed. When porting, this should be all that
 # needs to change for a new platform. Should be.
 
-# Whole device device node path for eMMC. Assuming it is static each boot.
+# Whole device node path for eMMC. Assuming it is static each boot.
 EMMC_DEV="/dev/mmcblk0"
 
 # U-Boot is stored on boot partitions of eMMC on platforms compatible with

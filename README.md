@@ -77,7 +77,7 @@ Can be built with (See [Using Docker](#using-docker) for how to build in Docker 
 ### ts7100_defconfig
 * Supports TS-7100 devices
 * Generates a minimal Linux with hardware support (based on 5.10 kernel)
-* Outputs `rootfs.tar.gz` which can be written to any boot device for the platform: USB, eMMC.
+* Outputs `rootfs.tar.xz` which can be written to any boot device for the platform: USB, eMMC.
 
 Can be built with (See [Using Docker](#using-docker) for how to build in Docker container):
 
@@ -97,7 +97,7 @@ Can be built with (See [Using Docker](#using-docker) for how to build in Docker 
 ### ts7250v3_defconfig
 * Supports TS-7250-V3 devices
 * Generates a minimal Linux with hardware support (based on 5.10 kernel)
-* Outputs `rootfs.tar.gz` which can be written to any boot device for the platform: USB, eMMC, etc.
+* Outputs `rootfs.tar.xz` which can be written to any boot device for the platform: USB, eMMC, etc.
 
 Can be built with (See [Using Docker](#using-docker) for how to build in Docker container):
 
@@ -233,7 +233,9 @@ Can be built with (See [Using Docker](#using-docker) for how to build in Docker 
 
 Can be built with (See [Using Docker](#using-docker) for how to build in Docker container):
 
-	make tsimx6_graphical_defconfig all
+	make tsimx6_graphical_defconfig xcb-util-cursor all
+    # There is a bug in Weston in Buildroot that requires xcb-util-cursor explicitly
+    # built first.
 
 ### tsimx6_usbprod_defconfig
 * Image Replication tool for TS-4900, TS-7970, and TS-TPC-7990 devices

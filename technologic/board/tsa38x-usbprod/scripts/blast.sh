@@ -8,10 +8,10 @@
 
 # XXX: See if its possible to easily detect a 7800v2 and enable SD for this
 
-# Whole device device node path for eMMC. Assuming it is static each boot.
+# Whole device node path for eMMC. Assuming it is static each boot.
 EMMC_DEV="/dev/mmcblk0"
 
-# Whole device device node path for SATA. Assuming it is static each boot.
+# Whole device node path for SATA. Assuming it is static each boot.
 SATA_DEV="/dev/sda"
 
 # U-Boot is stored on boot partitions of eMMC on platforms compatible with
