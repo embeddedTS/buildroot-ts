@@ -51,21 +51,19 @@ led_init() {
 
 mkdir /tmp/logs
 
+write_microcontroller() {
+### Check for an handle microcontroller updates.
+# This runs first since this may reboot if there is an update
+if [ -e "/mnt/usb/${micro_bin}" ]; then
+	wizard_update "/mnt/usb/${micro_bin}"
+fi
+}
+
 
 # Our default automatic use of the blast functions
 # Rather than calling this function, the calls made here can be integrated
 # in to custom blast processes
 write_images() {
-
-### Check for an handle microcontroller updates.
-# This runs first since this will hard reboot if there is an update
-if [ -e "/mnt/usb/${micro_bin}" ]; then
-	echo "========== Writing update binary to Microcontroller =========="
-	(
-		tsmicroupdate "/mnt/usb/${micro_bin}" || \
-			err_exit "Microcontroller update failed"
-	) > /tmp/logs/microcontroller-update 2>&1
-fi
 
 ### Check for and handle SD images
 # Order of search preferences handled by sdimage variable
@@ -258,6 +256,9 @@ blast_run() {
 		capture_images
 		mount -oremount,ro /mnt/usb
 	else
+		# Attempt to update supervisory microcontroller first
+		# since it may reboot upon success
+		write_microcontroller
 		write_images
 	fi
 
