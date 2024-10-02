@@ -36,10 +36,10 @@ all_images="${emmcimage} ${sataimage} ${uboot_img}"
 
 # Set up LED definitions, this needs to happen before blast_funcs.sh is sourced
 led_init() {
-	grnled_on() { echo 1 > /sys/class/leds/green\:power/brightness ; }
-	grnled_off() { echo 0 > /sys/class/leds/green\:power/brightness ; }
-	redled_on() { echo 1 > /sys/class/leds/red\:status/brightness ; }
-	redled_off() { echo 0 > /sys/class/leds/red\:status/brightness ; }
+	grnled_on() { echo 1 > "/sys/class/leds/green:power/brightness" ; }
+	grnled_off() { echo 0 > "/sys/class/leds/green:power/brightness" ; }
+	redled_on() { echo 1 > "/sys/class/leds/red:status/brightness" ; }
+	redled_off() { echo 0 > "/sys/class/leds/red:status/brightness" ; }
 
 	led_blinkloop
 }
@@ -47,6 +47,7 @@ led_init() {
 
 # Once the device nodes/partitions and valid image names are established,
 # then source in the functions that handle the writing processes
+# shellcheck disable=SC1091
 . /mnt/usb/blast_funcs.sh
 
 mkdir /tmp/logs
@@ -152,7 +153,8 @@ capture_images() {
 	# Only capture an image from SATA if SATA_DEV is a SATA device
 	# and the device node is a block device.
 	readlink /sys/class/block/"$(basename ${SATA_DEV})" | grep sata >/dev/null
-	if [ $? -eq 0 ] && [ -b "${SATA_DEV}" ] && [ ! -e /tmp/failed ]; then
+	RET=${?}
+	if [ "${RET}" -eq 0 ] && [ -b "${SATA_DEV}" ] && [ ! -e /tmp/failed ]; then
 		capture_img_or_tar_from_disk "${SATA_DEV}" "/mnt/usb" "sata"
 	fi
 }

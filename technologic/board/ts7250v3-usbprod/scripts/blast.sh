@@ -39,10 +39,10 @@ all_images="${sdimage} ${emmcimage} ${uboot_img} ${micro_bin} \
 
 # Set up LED definitions, this needs to happen before blast_funcs.sh is sourced
 led_init() {
-	grnled_on() { echo 1 > /sys/class/leds/green\:power/brightness ; }
-	grnled_off() { echo 0 > /sys/class/leds/green\:power/brightness ; }
-	redled_on() { echo 1 > /sys/class/leds/red\:indicator/brightness ; }
-	redled_off() { echo 0 > /sys/class/leds/red\:indicator/brightness ; }
+	grnled_on() { echo 1 > "/sys/class/leds/green:power/brightness" ; }
+	grnled_off() { echo 0 > "/sys/class/leds/green:power/brightness" ; }
+	redled_on() { echo 1 > "/sys/class/leds/red:indicator/brightness" ; }
+	redled_off() { echo 0 > "/sys/class/leds/red:indicator/brightness" ; }
 
 	led_blinkloop
 }
@@ -50,6 +50,7 @@ led_init() {
 
 # Once the device nodes/partitions and valid image names are established,
 # then source in the functions that handle the writing processes
+# shellcheck disable=SC1091
 . /mnt/usb/blast_funcs.sh
 
 mkdir /tmp/logs
