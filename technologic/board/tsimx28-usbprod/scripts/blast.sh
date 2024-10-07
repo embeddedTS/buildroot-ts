@@ -42,6 +42,7 @@ led_init() {
 
 # Once the device nodes/partitions and valid image names are established,
 # then source in the functions that handle the writing processes
+# shellcheck disable=SC1091
 . /mnt/usb/blast_funcs.sh
 
 mkdir /tmp/logs

@@ -47,25 +47,24 @@ led_init() {
 
 # Once the device nodes/partitions and valid image names are established,
 # then source in the functions that handle the writing processes
+# shellcheck disable=SC1091
 . /mnt/usb/blast_funcs.sh
 
 mkdir /tmp/logs
+
+write_microcontroller() {
+### Check for an handle microcontroller updates.
+# This runs first since this may reboot if there is an update
+if [ -e "/mnt/usb/${micro_bin}" ]; then
+	wizard_update "/mnt/usb/${micro_bin}"
+fi
+}
 
 
 # Our default automatic use of the blast functions
 # Rather than calling this function, the calls made here can be integrated
 # in to custom blast processes
 write_images() {
-
-### Check for an handle microcontroller updates.
-# This runs first since this will hard reboot if there is an update
-if [ -e "/mnt/usb/${micro_bin}" ]; then
-	echo "========== Writing update binary to Microcontroller =========="
-	(
-		tsmicroupdate "/mnt/usb/${micro_bin}" || \
-			err_exit "Microcontroller update failed"
-	) > /tmp/logs/microcontroller-update 2>&1
-fi
 
 ### Check for and handle SD images
 # Order of search preferences handled by sdimage variable
@@ -235,7 +234,8 @@ capture_images() {
 	# Only capture an image from SATA if SATA_DEV is a SATA device
 	# and the device node is a block device.
 	readlink /sys/class/block/"$(basename ${SATA_DEV})" | grep sata >/dev/null
-	if [ $? -eq 0 ] && [ -b "${SATA_DEV}" ] && [ ! -e /tmp/failed ]; then
+	RET=${?}
+	if [ "${RET}" -eq 0 ] && [ -b "${SATA_DEV}" ] && [ ! -e /tmp/failed ]; then
 		capture_img_or_tar_from_disk "${SATA_DEV}" "/mnt/usb" "sata"
 	fi
 }
@@ -258,6 +258,9 @@ blast_run() {
 		capture_images
 		mount -oremount,ro /mnt/usb
 	else
+		# Attempt to update supervisory microcontroller first
+		# since it may reboot upon success
+		write_microcontroller
 		write_images
 	fi
 

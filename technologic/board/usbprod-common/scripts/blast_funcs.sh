@@ -458,6 +458,23 @@ capture_img_or_tar_from_disk() {
 
 }
 
+### Wizard Update
+### Used to update the supervisory microcontroller on some platforms.
+### This tool will properly error on incompatible devices
+# Args:
+# 1) Update file
+wizard_update() {
+	FILE="${1}"
+
+	echo "====== Updating Supervisory Microcontroller (Wizard) ======"
+	(
+		set -x -o pipefail
+
+		tssupervisorupdate --info || err_exit "wizard info"
+		tssupervisorupdate -u "${FILE}" || err_exit "wizard update"
+	) > /tmp/logs/wizard-update 2>&1
+}
+
 ### Blink the LEDs in a loop based on status markers
 # Currently only has three states, running [default], completed, and failed
 # The markers are /tmp files names /tmp/failed and /tmp/completed
