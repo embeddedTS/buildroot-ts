@@ -333,6 +333,9 @@ capture_img_or_tar_from_disk() {
 	(
 		set -x -o pipefail
 
+		# Ensure kernel loop driver is loaded
+		modprobe loop || err_exit "modprobe loop"
+
 		# Get number of partitions on the source device
 		PART_CNT=$(partx -g "${SRC_DEV}" | wc -l)
 
