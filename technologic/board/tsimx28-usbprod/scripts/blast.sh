@@ -130,15 +130,15 @@ write_images() {
 # This is our automatic capture of disk images
 capture_images() {
 	if [ -b "${SD_DEV}" ]; then
-		capture_img_or_tar_from_disk "${SD_DEV}" "/mnt/usb" "sd"
+		capture_img_or_tar_from_disk "${SD_DEV}" "/mnt/usb" "sd" 2
 	fi
 
-	if [ -b "${SD1_DEV}" ]; then
-		capture_img_or_tar_from_disk "${SD1_DEV}" "/mnt/usb" "sd1"
+	if [ -b "${SD1_DEV}" ] && [ ! -e /tmp/failed ]; then
+		capture_img_or_tar_from_disk "${SD1_DEV}" "/mnt/usb" "sd1" 2
 	fi
 
-	if [ -b "${EMMC_DEV}" ]; then
-		capture_img_or_tar_from_disk "${EMMC_DEV}" "/mnt/usb" "emmc"
+	if [ -b "${EMMC_DEV}" ] && [ ! -e /tmp/failed ]; then
+		capture_img_or_tar_from_disk "${EMMC_DEV}" "/mnt/usb" "emmc" 2
 	fi
 }
 
