@@ -49,6 +49,24 @@ get_stream_decomp() {
 	echo "${CMD}"
 }
 
+### Function to get all option files from a directory and export them
+### as environment variables that can be checked.
+# Args
+# 1) The path to look for option files
+# Use
+
+get_env_options() {
+	OPT_PATH="${1}"
+
+	for file in "${OPT_PATH}"/IR_*; do
+		file=$(basename ${file})
+		[ "${file}" = "IR_*" ] && continue
+		echo "Using Option: ${file}"
+		eval "${file}=1"
+		eval "export ${file}"
+	done
+}
+
 ### Function to return the full file path to a specified disk partition.
 ### Converts input disk and part in to a path, handles block devices
 ### and files. Needed because some device paths use a partition prefix
@@ -404,13 +422,14 @@ capture_img_or_tar_from_disk() {
 		fi
 
 		# Run prep image script against the mounted directory
+		# XXX: This is a hardcoded path and could be a problem
 		/mnt/usb/sanitize_linux_rootfs.sh "${TMP_DIR}"
 
 
 		# If there is a single partition, then lets make a tarball
 		# as opposed to a whole disk image to save time and space.
 		if [ ${PART_CNT} -eq 1 ]; then
-			echo "Creating compressed tarball"
+			echo "Creating tarball"
 			tar chf "${DST_TAR}" -C "${TMP_DIR}"/ . || \
 			  err_exit "tar create ${TAR}"
 			# This two-step is needed, and repeated, because we want
@@ -419,11 +438,14 @@ capture_img_or_tar_from_disk() {
 			MD5SUM=$(echo "${MD5SUM}" | cut -f 1 -d ' ')
 			echo "${MD5SUM}  ${TAR}" > "${DST_TAR}.md5"
 
-			xz -2 "${DST_TAR}" || err_exit "compress ${TAR}"
-			MD5SUM=$(md5sum "${DST_TAR}.xz") || \
-			  err_exit "md5 ${TAR}.xz"
-			MD5SUM=$(echo "${MD5SUM}" | cut -f 1 -d ' ')
-			echo "${MD5SUM}  ${TAR}.xz" > "${DST_TAR}.xz.md5"
+			# Don't compress the output file if IR_NO_COMPRESS
+			# env var is defined
+			if [ -n "${IR_NO_COMPRESS}" ]; then
+				echo "Skipping compression"
+			else
+				echo "Compressing tarball"
+				xz -2 "${DST_TAR}" || err_exit "compress ${TAR}"
+			fi
 		else
 			# Prep our existing .dd for better compression
 			echo "Zeroing out free space in FS for better compression"
@@ -440,7 +462,7 @@ capture_img_or_tar_from_disk() {
 		if [ ${PART_CNT} -eq 1 ]; then
 			rm "${TMP_DISK}" || err_exit "rm ${TMP_DISK}"
 		else
-			echo "Compressing and generating md5s"
+			echo "Creating final image"
 			losetup -d "${LODEV}" || err_exit "losetup destroy ${LODEV}"
 
 			# This two-step is needed, and repeated, because we want
@@ -449,11 +471,14 @@ capture_img_or_tar_from_disk() {
 			MD5SUM=$(echo "${MD5SUM}" | cut -f 1 -d ' ')
 			echo "${MD5SUM}  ${IMG}" > "${DST_IMG}.md5"
 
-			xz -2 "${DST_IMG}" || err_exit "compress ${IMG}"
-			MD5SUM=$(md5sum "${DST_IMG}.xz") || \
-			  err_exit "md5 ${IMG}.xz"
-			MD5SUM=$(echo "${MD5SUM}" | cut -f 1 -d ' ')
-			echo "${MD5SUM}  ${IMG}.xz" > "${DST_IMG}.xz.md5"
+			# Don't compress the output file if IR_NO_COMPRESS
+			# env var is defined
+			if [ -n "${IR_NO_COMPRESS}" ]; then
+				echo "Skipping compression"
+			else
+				echo "Compressing image"
+				xz -2 "${DST_IMG}" || err_exit "compress ${IMG}"
+			fi
 		fi
 
 
