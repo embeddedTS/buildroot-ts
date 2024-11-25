@@ -200,6 +200,17 @@ blast_run() {
 	# Get all options that may be set
 	get_env_options "/mnt/usb/"
 
+	# Check to see if the user wanted to only drop to a shell
+	if [ -n "${IR_SHELL_ONLY}" ]; then
+		echo "NOT running production process, dropping to shell!"
+		# Set a failed condition to not cause confusion that the process
+		# successfully completed.
+		touch /tmp/failed
+		touch /tmp/completed
+
+		exit
+	fi
+
 	# Check for any one of the valid image sources, if none exist, then start
 	# the image capture process. Note that, if uboot_img nor fpga_* exist, then
 	# no images are captured. If they do not exist, neither are captured as
