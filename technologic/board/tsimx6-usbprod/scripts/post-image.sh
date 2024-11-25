@@ -26,6 +26,7 @@ mkimage -A arm -T script -C none -n 'boot' -d "${TEMPDIR}"/tsinit.source "${TEMP
 
 # Scripts used for capturing/writing images
 cp "${PLAT_SCRIPTS}/blast.sh" "${TEMPDIR}/"
+cp "${COMM_SCRIPTS}/README.txt" "${TEMPDIR}/"
 cp "${COMM_SCRIPTS}/blast_funcs.sh" "${TEMPDIR}/"
 cp "${COMM_SCRIPTS}/sanitize_linux_rootfs.sh" "${TEMPDIR}/"
 
