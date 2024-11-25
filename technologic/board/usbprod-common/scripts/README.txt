@@ -12,5 +12,4 @@ IR_NO_CAPTURE_SATA
 When capturing, skip media matching this name. See the respective platform manual for information on which names correspond to which physical media. Note that the names are generic and match what the media is captured as, regardless of actual device node. The names are uniform between capture and write for a given system.
 
 IR_SHELL_ONLY
-IR_SHELL_ONLY_ONCE
-When booting, skip doing any of the image replication process (capture or write) and instead drop to a login prompt. If _ONCE is used, the file will be removed after it is honored.
+When booting, skip doing any of the image replication process (capture or write) and instead drop to a login prompt.
