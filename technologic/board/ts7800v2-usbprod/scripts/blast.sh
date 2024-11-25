@@ -173,11 +173,14 @@ fi
 
 # This is our automatic capture of disk images
 capture_images() {
-	if [ -b "${SD_DEV}" ]; then
+	if [ -b "${SD_DEV}" ] && \
+	   [ -z "${IR_NO_CAPTURE_SD}" ]; then
 		capture_img_or_tar_from_disk "${SD_DEV}" "/mnt/usb" "sd"
 	fi
 
-	if [ -b "${EMMC_DEV}" ] && [ ! -e /tmp/failed ]; then
+	if [ -b "${EMMC_DEV}" ] && \
+	   [ -z "${IR_NO_CAPTURE_EMMC}" ] && \
+	   [ ! -e /tmp/failed ]; then
 		capture_img_or_tar_from_disk "${EMMC_DEV}" "/mnt/usb" "emmc"
 	fi
 
@@ -185,12 +188,18 @@ capture_images() {
 	# and the device node is a block device.
 	readlink /sys/class/block/"$(basename ${SATA_DEV})" | grep sata >/dev/null
 	RET=${?}
-	if [ "${RET}" -eq 0 ] && [ -b "${SATA_DEV}" ] && [ ! -e /tmp/failed ]; then
+	if [ "${RET}" -eq 0 ] && \
+	   [ -b "${SATA_DEV}" ] && \
+	   [ -z "${IR_NO_CAPTURE_SATA}" ] && \
+	   [ ! -e /tmp/failed ]; then
 		capture_img_or_tar_from_disk "${SATA_DEV}" "/mnt/usb" "sata"
 	fi
 }
 
 blast_run() {
+	# Get all options that may be set
+	get_env_options "/mnt/usb/"
+
 	# Check for any one of the valid image sources, if none exist, then start
 	# the image capture process. Note that, if uboot_img nor fpga_* exist, then
 	# no images are captured. If they do not exist, neither are captured as
