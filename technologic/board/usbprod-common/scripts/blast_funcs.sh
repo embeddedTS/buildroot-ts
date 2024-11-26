@@ -550,3 +550,107 @@ led_blinkloop() {
 		fi
 	done
 }
+
+### Handle writing U-Boot binary blobs to disk
+# This can handle both writing a single image, or a pair of images, e.g. separate
+# U-Boot binary and SPL blob. As well as doing a readback verification using a
+# similarly named .md5 file. If the block device name has an associated `force_ro`
+# file such as boot* partitions on eMMC it will automatically set the device to
+# read/write and then back to read-only.
+#
+# When specifying offsets for the image (and SPL) the offsets are specified
+# IN 512 BYTE BLOCKS! This makes writing a bit faster and every platform in the
+# the future should all be fine with this alignment.
+# Args:
+# 1) U-Boot device name, not the full path, e.g. mtdblock0, mmcblk1boot0, etc.
+#    NOTE! This assumes the the device is a device node!
+# 2) Full path to U-Boot image (this is the .imx, .bin, etc.)
+#    If a corresponding .md5 file exists, that is used to verify reading back
+# 3) Start of where to place the image IN 512 BYTE BLOCKS! e.g. 0 is 0*512 bytes,
+#    2 is 2*512 bytes, etc.
+# 4) [Optional] Full path to U-Boot SPL
+#    If a corresponding .md5 file exists, that is used to verify reading back
+# 5) [Required if SPL] Start of where to place the SPL IN 512 BYTE BLOCKS!
+#    e.g. 0 is 0*512 bytes,
+# Use:
+# write_uboot "mtdblock0" "/mnt/usb/u-boot.bin" 2 "/mnt/usb/SPL" 400
+# write_uboot "mmbclk0boot0" "/mnt/usb/u-boot.bin" 0
+
+write_uboot() {
+	UBOOT_DN="${1}"
+	UBOOT_IMG="${2}"
+	UBOOT_IMG_OFFS="${3}"
+	UBOOT_SPL="${4:--1}"
+	UBOOT_SPL_OFFS="${5:--1}"
+
+        echo "========== Writing new U-boot image =========="
+        (
+		set -x -o pipefail
+
+		# If the device name (DN) is eMMC then we likely need to unlock
+		# the boot partition. If the force_ro file exists, then we just
+		# blindly poke it.
+		if [ -e "/sys/block/${UBOOT_DN}/force_ro" ]; then
+			echo 0 > "/sys/block/${UBOOT_DN}/force_ro"
+		fi
+
+		# Write image to offset. Always assumes a bs of 512!
+		# This does not error on write failure, maybe it should?
+		dd bs=512 seek="${UBOOT_IMG_OFFS}" if="${UBOOT_IMG}" \
+			of="/dev/${UBOOT_DN}"
+
+		# If provided, write SPL to its offset. Always assumes a bs of 512!
+		if [ "${UBOOT_SPL}" != "-1" ] && [ "${UBOOT_SPL_OFFS}" != "-1" ]; then
+			dd bs=512 seek="${UBOOT_SPL_OFFS}" if="${UBOOT_SPL}" \
+				of="/dev/${UBOOT_DN}"
+		fi
+
+		# Flush any buffer cache
+		sync
+		echo 3 > /proc/sys/vm/drop_caches
+
+		if [ -e "/sys/block/${UBOOT_DN}/force_ro" ]; then
+			echo 1 > "/sys/block/${UBOOT_DN}/force_ro"
+		fi
+
+		# Check md5sum of image
+		if [ -e "${UBOOT_IMG}.md5" ]; then
+                        BYTES=$(wc -c "${UBOOT_IMG}" | cut -d ' ' -f 1)
+                        EXPECTED=$(cut -f 1 -d ' ' "${UBOOT_IMG}.md5")
+			# This looks annoyingly convoluted because it is.
+			# In order to not get bogged down by reading very slowly
+			# we read a large chunk, jump to where we need to start
+			# then read the exact byte count. So we arn't using a bs
+			# of 1 on the whole disk. It could probably be optimized
+			# but it works.
+                        ACTUAL=$(dd if="/dev/${UBOOT_DN}" bs=4M | \
+                          dd skip="${UBOOT_IMG_OFFS}" bs=512 | \
+			  dd bs=1 count="${BYTES}" | \
+			  md5sum | \
+                          cut -f 1 -d ' ')
+                        if [ "${ACTUAL}" != "${EXPECTED}" ]; then
+				err_exit "U-Boot image verify"
+                        fi
+		fi
+
+		# Check md5sum of SPL
+		if [ -e "${UBOOT_SPL}.md5" ]; then
+                        BYTES=$(wc -c "${UBOOT_SPL}" | cut -d ' ' -f 1)
+                        EXPECTED=$(cut -f 1 -d ' ' "${UBOOT_SPL}.md5")
+			# This looks annoyingly convoluted because it is.
+			# In order to not get bogged down by reading very slowly
+			# we read a large chunk, jump to where we need to start
+			# then read the exact byte count. So we arn't using a bs
+			# of 1 on the whole disk. It could probably be optimized
+			# but it works.
+                        ACTUAL=$(dd if="/dev/${UBOOT_DN}" bs=4M | \
+                          dd skip="${UBOOT_SPL_OFFS}" bs=512 | \
+			  dd bs=1 count="${BYTES}" | \
+			  md5sum | \
+                          cut -f 1 -d ' ')
+                        if [ "${ACTUAL}" != "${EXPECTED}" ]; then
+				err_exit "U-Boot SPL verify"
+                        fi
+		fi
+	) > /tmp/logs/u-boot-writeimage 2>&1
+}
