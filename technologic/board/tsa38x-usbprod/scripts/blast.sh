@@ -57,6 +57,17 @@ mkdir /tmp/logs
 # in to custom blast processes
 write_images() {
 
+### Write U-Boot first, if applicable. Bail if it fails for any reason
+if [ -e "/mnt/usb/${uboot_img}" ]; then
+        write_uboot "${UBOOT_BN}" \
+                    "/mnt/usb/${uboot_img}" 0
+
+        # If that failed, abort writing anything else
+        if [ -e "/tmp/failed" ]; then
+                return
+        fi
+fi
+
 ### Check for and handle eMMC images
 # Order of search preferences handled by emmcimage variable
 (
@@ -118,30 +129,6 @@ write_images() {
 
 	wait
 ) &
-
-### U-Boot is unique to every platform and therefore the full process for it
-###   needs to be replicated and customized to each platform. Some parts of the
-###   following may be more re-usable than others
-if [ -e "/mnt/usb/${uboot_img}" ]; then
-	echo "========== Writing new U-boot image =========="
-	(
-		set -x
-
-		echo 0 > /sys/block/"${UBOOT_BN}"/force_ro
-		dd bs=1024 if=/mnt/usb/"${uboot_img}" of="${UBOOT_DEV}" \
-		  conv=fsync || err_exit "Write U-Boot"
-		if [ -e "/mnt/usb/${uboot_img}.md5" ]; then
-			BYTES=$(wc -c /mnt/usb/"${uboot_img}" | cut -d ' ' -f 1)
-			EXPECTED=$(cut -f 1 -d ' ' /mnt/usb/"${uboot_img}".md5)
-			ACTUAL=$(dd if="${UBOOT_DEV}" bs=4M | head -c "${BYTES}" | md5sum | cut -f 1 -d ' ')
-			if [ "${ACTUAL}" != "${EXPECTED}" ]; then
-				err_exit "Verify U-Boot"
-			fi
-		fi
-	) > /tmp/logs/u-boot-writeimage 2>&1 &
-fi
-
-
 }
 
 # This is our automatic capture of disk images

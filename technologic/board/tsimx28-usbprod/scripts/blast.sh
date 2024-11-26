@@ -164,9 +164,7 @@ blast_run() {
 	fi
 
 	# Check for any one of the valid image sources, if none exist, then start
-	# the image capture process. Note that, if uboot_img exists, then no images
-	# are captured. If it does not exist, the uboot_img is not captured as this
-	# is something that is not really standard
+	# the image capture process.
 	USB_HAS_VALID_IMAGES=0
 	for NAME in ${all_images}; do
 		if [ -e "/mnt/usb/${NAME}" ]; then
