@@ -42,7 +42,7 @@ cp "${COMM_SCRIPTS}/sanitize_linux_rootfs.sh" "${TEMPDIR}/"
 rm -f ${TAR_PATH}* ${IMG_PATH}*
 
 # Create output files
-tar chf "${TAR_DATE_PATH}.tar" -C "${TEMPDIR}" .
+tar cf "${TAR_DATE_PATH}.tar" -C "${TEMPDIR}" .
 md5sum "${TAR_DATE_PATH}.tar" > "${TAR_DATE_PATH}.tar.md5"
 xz -2 "${TAR_DATE_PATH}.tar"
 ln -sf "${TAR_BASE}-${DATE}.tar.xz" "${TAR_PATH}.tar.xz"

@@ -402,7 +402,7 @@ capture_img_or_tar_from_disk() {
 			# Copy source disk filesystem to our sparse file backed
 			# mount location. Use tar pipeline to ensure EVERY file
 			# property, permission, etc, is coped intact
-			tar -chf - -C "${TMP_SRC_DIR}"/ . | tar xh -C "${TMP_DIR}" \
+			tar -cf - -C "${TMP_SRC_DIR}"/ . | tar xh -C "${TMP_DIR}" \
 			  || err_exit "copy SRC contents to TMP DST"
 
 			# Unmount the SRC disk, we should no longer need this.
@@ -439,7 +439,7 @@ capture_img_or_tar_from_disk() {
 		# as opposed to a whole disk image to save time and space.
 		if [ ${PART_CNT} -eq 1 ]; then
 			echo "Creating tarball"
-			tar chf "${DST_TAR}" -C "${TMP_DIR}"/ . || \
+			tar cf "${DST_TAR}" -C "${TMP_DIR}"/ . || \
 			  err_exit "tar create ${TAR}"
 			# This two-step is needed, and repeated, because we want
 			# the .md5 file to not have any relative paths
