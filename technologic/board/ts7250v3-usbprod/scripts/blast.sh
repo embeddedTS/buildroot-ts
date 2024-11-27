@@ -139,9 +139,9 @@ if [ -e "/mnt/usb/${ts7250v3_fpga}" ] || [ -e "/mnt/usb/${ts7250v3_fpga_reva}" ]
 	(
 		set -x
 		if [ "${REVC_OR_LATER}" = "1" ]; then
-			/mnt/usb/"${ts7250v3_fpga}" || err_exit "${ts7250v3_fpga}"
+			/mnt/usb/"${ts7250v3_fpga}" || crit_exit "${ts7250v3_fpga}"
 		else
-			/mnt/usb/"${ts7250v3_fpga_reva}" || err_exit "${ts7250v3_fpga_reva}"
+			/mnt/usb/"${ts7250v3_fpga_reva}" || crit_exit "${ts7250v3_fpga_reva}"
 		fi
 	) > /tmp/logs/fpga-writeimage 2>&1 &
 fi

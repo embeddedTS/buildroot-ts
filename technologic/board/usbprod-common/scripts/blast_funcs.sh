@@ -8,6 +8,15 @@ err_exit() {
 	exit
 }
 
+# On something deemed a criticial failure, e.g. if power is removed after
+# this point in time the unit may not boot back up, create a crit-failed
+# file (with a rapid blinking pattern) and also a failed file so any
+# other systems looking for the default failed will get the same message
+crit_exit() {
+	echo "${1}" >> /tmp/crit-failed
+	err_exit "${1}"
+}
+
 ### Function to determine decompression to use based on name
 ### This is because busybox tar does not seem to correctly decompress
 ### arbitrary compression.
@@ -498,8 +507,8 @@ wizard_update() {
 	(
 		set -x -o pipefail
 
-		tssupervisorupdate --info || err_exit "wizard info"
-		tssupervisorupdate -u "${FILE}" || err_exit "wizard update"
+		tssupervisorupdate --info || crit_exit "wizard info"
+		tssupervisorupdate -u "${FILE}" || crit_exit "wizard update"
 	) > /tmp/logs/wizard-update 2>&1
 }
 
@@ -535,6 +544,12 @@ led_blinkloop() {
 			sleep 0.25
 			grnled_off
 			sleep 1
+		elif [ -e /tmp/crit-failed ]; then
+			grnled_off
+			redled_on
+			sleep 0.12
+			redled_off
+			sleep 0.12
 		elif [ -e /tmp/failed ]; then
 			grnled_off
 			redled_on
@@ -597,12 +612,14 @@ write_uboot() {
 		# Write image to offset. Always assumes a bs of 512!
 		# This does not error on write failure, maybe it should?
 		dd bs=512 seek="${UBOOT_IMG_OFFS}" if="${UBOOT_IMG}" \
-			of="/dev/${UBOOT_DN}"
+			of="/dev/${UBOOT_DN}" conv=fsync || \
+			crit_exit "U-Boot img write"
 
 		# If provided, write SPL to its offset. Always assumes a bs of 512!
 		if [ "${UBOOT_SPL}" != "-1" ] && [ "${UBOOT_SPL_OFFS}" != "-1" ]; then
 			dd bs=512 seek="${UBOOT_SPL_OFFS}" if="${UBOOT_SPL}" \
-				of="/dev/${UBOOT_DN}"
+				of="/dev/${UBOOT_DN}" conv=fsync || \
+				crit_exit "U-Boot spl write"
 		fi
 
 		# Flush any buffer cache
@@ -629,7 +646,7 @@ write_uboot() {
 			  md5sum | \
                           cut -f 1 -d ' ')
                         if [ "${ACTUAL}" != "${EXPECTED}" ]; then
-				err_exit "U-Boot image verify"
+				crit_exit "U-Boot image verify"
                         fi
 		fi
 
@@ -649,7 +666,7 @@ write_uboot() {
 			  md5sum | \
                           cut -f 1 -d ' ')
                         if [ "${ACTUAL}" != "${EXPECTED}" ]; then
-				err_exit "U-Boot SPL verify"
+				crit_exit "U-Boot SPL verify"
                         fi
 		fi
 	) > /tmp/logs/u-boot-writeimage 2>&1
