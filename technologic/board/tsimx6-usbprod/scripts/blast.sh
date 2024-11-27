@@ -293,9 +293,9 @@ blast_run() {
 
 	# If anything failed at this point, be noisy on console about it
 	if [ -e /tmp/failed ] ;then
-		echo "One or more images failed! $(cat /tmp/failed)"
+		echo "One or more operations failed! $(cat /tmp/failed)"
 		echo "Check /tmp/logs for more information."
 	else
-		echo "All images wrote correctly!"
+		echo "All operations succeeded!"
 	fi
 }
