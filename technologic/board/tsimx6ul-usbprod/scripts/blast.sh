@@ -57,13 +57,48 @@ write_images() {
 
 ### Write U-Boot first, if applicable. Bail if it fails for any reason
 if [ -e "/mnt/usb/${uboot_img}" ]; then
-        write_uboot "${UBOOT_BN}" \
-                    "/mnt/usb/${uboot_img}" 2
+	(
 
-        # If that failed, abort writing anything else
-        if [ -e "/tmp/failed" ]; then
-                return
-        fi
+	# shellcheck disable=SC3040
+	set -o pipefail
+
+	# First, check if we are on a TS-4100. If so, there are some rudimentary
+	# checks we can do to ensure that the correct U-Boot binary is going to
+	# be loaded
+	grep "TS-4100" /proc/device-tree/model >/dev/null 2>/dev/null
+	RET="${?}"
+	if [ "${RET}" -eq 0 ]; then
+		# Next, get the imx_type that U-Boot exported. Note that this
+		# does depend on U-Boot already being correct for this platform!
+		CMDLINE=$(cat /proc/cmdline)
+		for I in ${CMDLINE}; do
+			case $I in
+				imx_type=*)
+					BOARD_IMX_TYPE="${I#imx_type=}"
+					;;
+			esac
+		done
+		unset imx_type
+
+		# Now, get the imx_type exported by the U-Boot binary
+		eval "$(strings /mnt/usb/${uboot_img} | grep imx_type |head -n1)"
+		if [ -z "${imx_type}" ]; then
+			err_exit "imx_type not found in U-Boot update binary!"
+		fi
+		if [ "${BOARD_IMX_TYPE}" != "${imx_type}" ]; then
+			err_exit "System type ${BOARD_IMX_TYPE} and U-Boot update binary type ${imx_type} differ, refusing to write the update binary!"
+		fi
+	fi
+	)
+
+	if [ ! -e "/tmp/failed" ]; then
+		write_uboot "${UBOOT_BN}" "/mnt/usb/${uboot_img}" 2
+	fi
+
+	# If that failed, abort writing anything else
+	if [ -e "/tmp/failed" ]; then
+		return
+	fi
 fi
 
 ### Check for and handle SD images
