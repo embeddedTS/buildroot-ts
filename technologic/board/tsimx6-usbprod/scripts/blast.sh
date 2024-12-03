@@ -15,7 +15,7 @@ SD_DEV="/dev/mmcblk1"
 # Whole device node path for SATA. Assuming it is static each boot.
 SATA_DEV="/dev/sda"
 
-UBOOT_DEV="/dev/mtdblock0"
+UBOOT_DEV="mtdblock0"
 
 
 # Create array of valid file names for each media type
@@ -65,6 +65,68 @@ fi
 # Rather than calling this function, the calls made here can be integrated
 # in to custom blast processes
 write_images() {
+
+if [ -e "/mnt/usb/${uboot_img}" ]; then
+	(
+	# shellcheck disable=SC3040
+	set -o pipefail
+
+	# Get imx_type as exported by U-Boot
+	# This is the best way to get it reliably since it has been
+	# observed that different versions of U-Boot store the variables
+	# differently in the environment
+	CMDLINE=$(cat /proc/cmdline)
+	for I in ${CMDLINE}; do
+		case $I in
+			imx_type=*)
+				BOARD_IMX_TYPE="${I#imx_type=}"
+				;;
+		esac
+	done
+
+	# Get imx_type from the new image
+	# Older binaries seem to not have '=' used as a separator, but
+	# have EITHER <val>\0<var> or <var>\0<val> in memory; I've not found
+	# a specific reason for one or the other. Below, first check for '=' as
+	# a separator, then <val>\0<var>, if <val> at that point does not start
+	# with 'ts' then the model number, then use <var>\0<val>.
+	# Note that, this is not a 100% perfect check and it may still cause
+	# issues in a situation with a custom U-Boot binary depending on where
+	# variable names and values fall in memory. This is however, confirmed
+	# to work with all of our stock U-Boot binary builds.
+	unset imx_type
+	eval "$(strings /mnt/usb/${uboot_img} | grep imx_type |head -n1)" 2>/dev/null
+	if [ -z "${imx_type}" ]; then
+		# Attempt to extract imx_type from older binary
+		imx_type="$(strings /mnt/usb/${uboot_img} | grep -B1 imx_type | \
+			head -n1)"
+		# Check if ${imx_type} starts with 'ts' and 4 digit model, if
+		# not, then its not likely to correctly be imx_type and instead
+		# get the imx_type from the string after the variable name.
+		case "${imx_type}" in
+			ts4900*|ts7970*|ts7990*)
+				;;
+			*)
+				imx_type="$(strings /mnt/usb/${uboot_img} | \
+					grep -A1 imx_type | tail -n1)"
+				;;
+		esac
+	fi
+
+	if [ "${BOARD_IMX_TYPE}" != "${imx_type}" ]; then
+		err_exit "System type ${BOARD_IMX_TYPE} and U-Boot update binary type ${imx_type} differ, refusing to write the update binary!"
+	fi
+	)
+
+	if [ ! -e "/tmp/failed" ]; then
+		write_uboot "${UBOOT_DEV}" "/mnt/usb/${uboot_img}" 2
+	fi
+
+	# If that failed, abort writing anything else
+	if [ -e "/tmp/failed" ]; then
+		return
+	fi
+fi
 
 ### Check for and handle SD images
 # Order of search preferences handled by sdimage variable
@@ -129,7 +191,8 @@ write_images() {
 
 	if [ ${SATA_IMAGES} -eq 0 ]; then exit; fi
 
-        readlink /sys/class/block/"$(basename ${SATA_DEV})" | grep sata >/dev/null || err_exit "SATA disk not found!"
+        readlink /sys/class/block/"$(basename ${SATA_DEV})" | grep sata >/dev/null \
+		|| err_exit "SATA disk not found!"
 
 	DID_SOMETHING=0
 	for NAME in ${sataimage_tar}; do
@@ -151,74 +214,6 @@ write_images() {
 
 	wait
 ) &
-
-### U-Boot is unique to every platform and therefore the full process for it
-###   needs to be replicated and customized to each platform. Some parts of the
-###   following may be more re-usable than others
-if [ -e "/mnt/usb/${uboot_img}" ]; then
-	echo "========== Writing new U-boot image =========="
-	(
-		set -x
-
-		# Get imx_type as exported by U-Boot
-		# This is the best way to get it reliably since it has been
-		# observed that different versions of U-Boot store the variables
-		# differently in the environment
-		CMDLINE=$(cat /proc/cmdline)
-		for I in ${CMDLINE}; do
-			case $I in
-				imx_type=*)
-					BOARD_IMX_TYPE="${I#imx_type=}"
-					;;
-			esac
-		done
-
-		# Get imx_type from the new image
-		# Older binaries seem to not have '=' used as a separator, but
-		# have <val>\0<var> in memory. This may just be an artifact of
-		# how this value is stored as its consistent with a number of
-		# setenv() calls from initialization.
-		unset imx_type
-		eval "$(strings /mnt/usb/${uboot_img} | grep imx_type |head -n1)"
-		if [ -z "${imx_type}" ]; then
-			# Attempt to extract imx_type from older binary
-			imx_type="$(strings /mnt/usb/${uboot_img} | grep -B1 imx_type| head -n1)"
-			if [ -z "${imx_type}" ]; then
-				err_exit "Unable to detect imx_type in image file!";
-			fi
-		fi
-		IMAGE_IMX_TYPE="${imx_type}"
-
-		if [ "$BOARD_IMX_TYPE" != "$IMAGE_IMX_TYPE" ]; then
-			err_exit "IMX_TYPE $BOARD_IMX_TYPE and $IMAGE_IMX_TYPE didn't match. Writing this may brick the device or cause instability. Refusing to write U-Boot!"
-		else
-			dd if=/mnt/usb/"${uboot_img}" of="${UBOOT_DEV}" bs=1024 seek=1 conv=fsync || err_exit "U-Boot write failed"
-			if [ -e /mnt/usb/"${uboot_img}".md5 ]; then
-				sync
-				# Flush any buffer cache
-				echo 3 > /proc/sys/vm/drop_caches
-
-				BYTES=$(wc -c /mnt/usb/"${uboot_img}" | cut -d ' ' -f 1)
-				EXPECTED=$(cut -f 1 -d ' ' /mnt/usb/"${uboot_img}".md5)
-
-				# Read back from spi flash
-				TMPFILE=$(mktemp)
-
-				# Realistically, using a bs of 1 does not have
-				# a huge impact on time to read
-				dd if="${UBOOT_DEV}" bs=1 skip=1024 count="${BYTES}" of="${TMPFILE}"
-				UBOOT_FLASH=$(md5sum "${TMPFILE}" | cut -f 1 -d ' ')
-
-				if [ "$UBOOT_FLASH" != "$EXPECTED" ]; then
-					err_exit "U-Boot verify failed"
-				fi
-			fi
-		fi
-
-	) > /tmp/logs/u-boot-writeimage 2>&1 &
-fi
-
-
 }
 
 # This is our automatic capture of disk images
