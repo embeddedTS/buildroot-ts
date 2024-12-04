@@ -68,7 +68,7 @@ get_env_options() {
 	OPT_PATH="${1}"
 
 	for file in "${OPT_PATH}"/IR_*; do
-		file=$(basename ${file})
+		file=$(basename "${file}")
 		[ "${file}" = "IR_*" ] && continue
 		echo "Using Option: ${file}"
 		eval "${file}=1"
@@ -152,6 +152,7 @@ untar_image() {
 	echo "======= Writing ${HUMAN_NAME} filesystem ========"
 
 	(
+		# shellcheck disable=SC3040
 		set -x -o pipefail
 
 		# NOTE: This would be where modifications could be made to
@@ -265,6 +266,7 @@ dd_image() {
 		# while we are writing it to disk. This involves a couple of temp
 		# files and directories that later get cleaned up.
 
+		# shellcheck disable=SC3040
 		set -x -o pipefail
 
 		BYTES_CNT_F=$(mktemp)
@@ -358,6 +360,7 @@ capture_img_or_tar_from_disk() {
 
 	echo "====== Capturing ${NAME} image from ${SRC_DEV} ======"
 	(
+		# shellcheck disable=SC3040
 		set -x -o pipefail
 
 		# Ensure kernel loop driver is loaded
@@ -373,7 +376,7 @@ capture_img_or_tar_from_disk() {
 		# backed by a sparse file with the SRC_DEV's disk contents here.
 		# Then, this path can be passed to the sanitization script
 		# regardless of it being the sparse backed or disk image loopback.
-		if [ ${PART_CNT} -eq 1 ]; then
+		if [ "${PART_CNT}" -eq 1 ]; then
 
 			# Make a temporary file on ${DST_PATH} that will become
 			# our loopback mount
@@ -437,7 +440,7 @@ capture_img_or_tar_from_disk() {
 
 		# If there is a single partition, then lets make a tarball
 		# as opposed to a whole disk image to save time and space.
-		if [ ${PART_CNT} -eq 1 ]; then
+		if [ "${PART_CNT}" -eq 1 ]; then
 			echo "Creating tarball"
 			tar cf "${DST_TAR}" -C "${TMP_DIR}"/ . || \
 			  err_exit "tar create ${TAR}"
@@ -468,7 +471,7 @@ capture_img_or_tar_from_disk() {
 		# If we used a tarball, then remove the sparse file backing
 		# the loopback.
 		# If a disk image, then compress and create output files
-		if [ ${PART_CNT} -eq 1 ]; then
+		if [ "${PART_CNT}" -eq 1 ]; then
 			rm "${TMP_DISK}" || err_exit "rm ${TMP_DISK}"
 		else
 			echo "Creating final image"
@@ -505,6 +508,7 @@ wizard_update() {
 
 	echo "====== Updating Supervisory Microcontroller (Wizard) ======"
 	(
+		# shellcheck disable=SC3040
 		set -x -o pipefail
 
 		tssupervisorupdate --info || crit_exit "wizard info"
@@ -600,6 +604,7 @@ write_uboot() {
 
         echo "========== Writing new U-boot image =========="
         (
+		# shellcheck disable=SC3040
 		set -x -o pipefail
 
 		# If the device name (DN) is eMMC then we likely need to unlock
