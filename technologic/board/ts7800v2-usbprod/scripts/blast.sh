@@ -230,7 +230,11 @@ blast_run() {
 
 	# If anything failed at this point, be noisy on console about it
 	if [ -e /tmp/failed ] ;then
-		echo "One or more operations failed! $(cat /tmp/failed)"
+		echo ""
+		echo "One or more operations failed!"
+		echo "=================================================="
+		cat /tmp/failed
+		echo "=================================================="
 		echo "Check /tmp/logs for more information."
 	else
 		echo "All operations succeeded!"
