@@ -129,25 +129,42 @@ write_images() {
 
 # This is our automatic capture of disk images
 capture_images() {
-	if [ -b "${SD_DEV}" ]; then
-		capture_img_or_tar_from_disk "${SD_DEV}" "/mnt/usb" "sd"
+	if [ -b "${SD_DEV}" ] && \
+	   [ -z "${IR_NO_CAPTURE_SD}" ]; then
+		capture_img_or_tar_from_disk "${SD_DEV}" "/mnt/usb" "sd" 2
 	fi
 
-	if [ -b "${SD1_DEV}" ]; then
-		capture_img_or_tar_from_disk "${SD1_DEV}" "/mnt/usb" "sd1"
+	if [ -b "${SD1_DEV}" ] && \
+	   [ -z "${IR_NO_CAPTURE_SD1}" ] && \
+	   [ ! -e /tmp/failed ]; then
+		capture_img_or_tar_from_disk "${SD1_DEV}" "/mnt/usb" "sd1" 2
 	fi
 
-	if [ -b "${EMMC_DEV}" ]; then
-		capture_img_or_tar_from_disk "${EMMC_DEV}" "/mnt/usb" "emmc"
+	if [ -b "${EMMC_DEV}" ] && \
+	   [ -z "${IR_NO_CAPTURE_EMMC}" ] && \
+	   [ ! -e /tmp/failed ]; then
+		capture_img_or_tar_from_disk "${EMMC_DEV}" "/mnt/usb" "emmc" 2
 	fi
 }
 
 
 blast_run() {
+	# Get all options that may be set
+	get_env_options "/mnt/usb/"
+
+	# Check to see if the user wanted to only drop to a shell
+	if [ -n "${IR_SHELL_ONLY}" ]; then
+		echo "NOT running production process, dropping to shell!"
+		# Set a failed condition to not cause confusion that the process
+		# successfully completed.
+		touch /tmp/failed
+		touch /tmp/completed
+
+		exit
+	fi
+
 	# Check for any one of the valid image sources, if none exist, then start
-	# the image capture process. Note that, if uboot_img exists, then no images
-	# are captured. If it does not exist, the uboot_img is not captured as this
-	# is something that is not really standard
+	# the image capture process.
 	USB_HAS_VALID_IMAGES=0
 	for NAME in ${all_images}; do
 		if [ -e "/mnt/usb/${NAME}" ]; then
@@ -173,9 +190,13 @@ blast_run() {
 
 	# If anything failed at this point, be noisy on console about it
 	if [ -e /tmp/failed ] ;then
-		echo "One or more images failed! $(cat /tmp/failed)"
+		echo ""
+		echo "One or more operations failed!"
+		echo "=================================================="
+		cat /tmp/failed
+		echo "=================================================="
 		echo "Check /tmp/logs for more information."
 	else
-		echo "All images wrote correctly!"
+		echo "All operations succeeded!"
 	fi
 }

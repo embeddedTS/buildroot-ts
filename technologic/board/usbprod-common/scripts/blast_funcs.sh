@@ -8,6 +8,15 @@ err_exit() {
 	exit
 }
 
+# On something deemed a criticial failure, e.g. if power is removed after
+# this point in time the unit may not boot back up, create a crit-failed
+# file (with a rapid blinking pattern) and also a failed file so any
+# other systems looking for the default failed will get the same message
+crit_exit() {
+	echo "${1}" >> /tmp/crit-failed
+	err_exit "${1}"
+}
+
 ### Function to determine decompression to use based on name
 ### This is because busybox tar does not seem to correctly decompress
 ### arbitrary compression.
@@ -47,6 +56,24 @@ get_stream_decomp() {
 	esac
 
 	echo "${CMD}"
+}
+
+### Function to get all option files from a directory and export them
+### as environment variables that can be checked.
+# Args
+# 1) The path to look for option files
+# Use
+
+get_env_options() {
+	OPT_PATH="${1}"
+
+	for file in "${OPT_PATH}"/IR_*; do
+		file=$(basename "${file}")
+		[ "${file}" = "IR_*" ] && continue
+		echo "Using Option: ${file}"
+		eval "${file}=1"
+		eval "export ${file}"
+	done
 }
 
 ### Function to return the full file path to a specified disk partition.
@@ -125,6 +152,7 @@ untar_image() {
 	echo "======= Writing ${HUMAN_NAME} filesystem ========"
 
 	(
+		# shellcheck disable=SC3040
 		set -x -o pipefail
 
 		# NOTE: This would be where modifications could be made to
@@ -238,6 +266,7 @@ dd_image() {
 		# while we are writing it to disk. This involves a couple of temp
 		# files and directories that later get cleaned up.
 
+		# shellcheck disable=SC3040
 		set -x -o pipefail
 
 		BYTES_CNT_F=$(mktemp)
@@ -331,7 +360,11 @@ capture_img_or_tar_from_disk() {
 
 	echo "====== Capturing ${NAME} image from ${SRC_DEV} ======"
 	(
+		# shellcheck disable=SC3040
 		set -x -o pipefail
+
+		# Ensure kernel loop driver is loaded
+		modprobe loop || err_exit "modprobe loop"
 
 		# Get number of partitions on the source device
 		PART_CNT=$(partx -g "${SRC_DEV}" | wc -l)
@@ -343,7 +376,7 @@ capture_img_or_tar_from_disk() {
 		# backed by a sparse file with the SRC_DEV's disk contents here.
 		# Then, this path can be passed to the sanitization script
 		# regardless of it being the sparse backed or disk image loopback.
-		if [ ${PART_CNT} -eq 1 ]; then
+		if [ "${PART_CNT}" -eq 1 ]; then
 
 			# Make a temporary file on ${DST_PATH} that will become
 			# our loopback mount
@@ -372,7 +405,7 @@ capture_img_or_tar_from_disk() {
 			# Copy source disk filesystem to our sparse file backed
 			# mount location. Use tar pipeline to ensure EVERY file
 			# property, permission, etc, is coped intact
-			tar -chf - -C "${TMP_SRC_DIR}"/ . | tar xh -C "${TMP_DIR}" \
+			tar -cf - -C "${TMP_SRC_DIR}"/ . | tar xh -C "${TMP_DIR}" \
 			  || err_exit "copy SRC contents to TMP DST"
 
 			# Unmount the SRC disk, we should no longer need this.
@@ -401,14 +434,15 @@ capture_img_or_tar_from_disk() {
 		fi
 
 		# Run prep image script against the mounted directory
+		# XXX: This is a hardcoded path and could be a problem
 		/mnt/usb/sanitize_linux_rootfs.sh "${TMP_DIR}"
 
 
 		# If there is a single partition, then lets make a tarball
 		# as opposed to a whole disk image to save time and space.
-		if [ ${PART_CNT} -eq 1 ]; then
-			echo "Creating compressed tarball"
-			tar chf "${DST_TAR}" -C "${TMP_DIR}"/ . || \
+		if [ "${PART_CNT}" -eq 1 ]; then
+			echo "Creating tarball"
+			tar cf "${DST_TAR}" -C "${TMP_DIR}"/ . || \
 			  err_exit "tar create ${TAR}"
 			# This two-step is needed, and repeated, because we want
 			# the .md5 file to not have any relative paths
@@ -416,11 +450,14 @@ capture_img_or_tar_from_disk() {
 			MD5SUM=$(echo "${MD5SUM}" | cut -f 1 -d ' ')
 			echo "${MD5SUM}  ${TAR}" > "${DST_TAR}.md5"
 
-			xz -2 "${DST_TAR}" || err_exit "compress ${TAR}"
-			MD5SUM=$(md5sum "${DST_TAR}.xz") || \
-			  err_exit "md5 ${TAR}.xz"
-			MD5SUM=$(echo "${MD5SUM}" | cut -f 1 -d ' ')
-			echo "${MD5SUM}  ${TAR}.xz" > "${DST_TAR}.xz.md5"
+			# Don't compress the output file if IR_NO_COMPRESS
+			# env var is defined
+			if [ -n "${IR_NO_COMPRESS}" ]; then
+				echo "Skipping compression"
+			else
+				echo "Compressing tarball"
+				xz -2 "${DST_TAR}" || err_exit "compress ${TAR}"
+			fi
 		else
 			# Prep our existing .dd for better compression
 			echo "Zeroing out free space in FS for better compression"
@@ -434,10 +471,10 @@ capture_img_or_tar_from_disk() {
 		# If we used a tarball, then remove the sparse file backing
 		# the loopback.
 		# If a disk image, then compress and create output files
-		if [ ${PART_CNT} -eq 1 ]; then
+		if [ "${PART_CNT}" -eq 1 ]; then
 			rm "${TMP_DISK}" || err_exit "rm ${TMP_DISK}"
 		else
-			echo "Compressing and generating md5s"
+			echo "Creating final image"
 			losetup -d "${LODEV}" || err_exit "losetup destroy ${LODEV}"
 
 			# This two-step is needed, and repeated, because we want
@@ -446,11 +483,14 @@ capture_img_or_tar_from_disk() {
 			MD5SUM=$(echo "${MD5SUM}" | cut -f 1 -d ' ')
 			echo "${MD5SUM}  ${IMG}" > "${DST_IMG}.md5"
 
-			xz -2 "${DST_IMG}" || err_exit "compress ${IMG}"
-			MD5SUM=$(md5sum "${DST_IMG}.xz") || \
-			  err_exit "md5 ${IMG}.xz"
-			MD5SUM=$(echo "${MD5SUM}" | cut -f 1 -d ' ')
-			echo "${MD5SUM}  ${IMG}.xz" > "${DST_IMG}.xz.md5"
+			# Don't compress the output file if IR_NO_COMPRESS
+			# env var is defined
+			if [ -n "${IR_NO_COMPRESS}" ]; then
+				echo "Skipping compression"
+			else
+				echo "Compressing image"
+				xz -2 "${DST_IMG}" || err_exit "compress ${IMG}"
+			fi
 		fi
 
 
@@ -468,10 +508,11 @@ wizard_update() {
 
 	echo "====== Updating Supervisory Microcontroller (Wizard) ======"
 	(
+		# shellcheck disable=SC3040
 		set -x -o pipefail
 
-		tssupervisorupdate --info || err_exit "wizard info"
-		tssupervisorupdate -u "${FILE}" || err_exit "wizard update"
+		tssupervisorupdate --info || crit_exit "wizard info"
+		tssupervisorupdate -u "${FILE}" || crit_exit "wizard update"
 	) > /tmp/logs/wizard-update 2>&1
 }
 
@@ -507,6 +548,12 @@ led_blinkloop() {
 			sleep 0.25
 			grnled_off
 			sleep 1
+		elif [ -e /tmp/crit-failed ]; then
+			grnled_off
+			redled_on
+			sleep 0.12
+			redled_off
+			sleep 0.12
 		elif [ -e /tmp/failed ]; then
 			grnled_off
 			redled_on
@@ -521,4 +568,111 @@ led_blinkloop() {
 			sleep 1
 		fi
 	done
+}
+
+### Handle writing U-Boot binary blobs to disk
+# This can handle both writing a single image, or a pair of images, e.g. separate
+# U-Boot binary and SPL blob. As well as doing a readback verification using a
+# similarly named .md5 file. If the block device name has an associated `force_ro`
+# file such as boot* partitions on eMMC it will automatically set the device to
+# read/write and then back to read-only.
+#
+# When specifying offsets for the image (and SPL) the offsets are specified
+# IN 512 BYTE BLOCKS! This makes writing a bit faster and every platform in the
+# the future should all be fine with this alignment.
+# Args:
+# 1) U-Boot device name, not the full path, e.g. mtdblock0, mmcblk1boot0, etc.
+#    NOTE! This assumes the the device is a device node!
+# 2) Full path to U-Boot image (this is the .imx, .bin, etc.)
+#    If a corresponding .md5 file exists, that is used to verify reading back
+# 3) Start of where to place the image IN 512 BYTE BLOCKS! e.g. 0 is 0*512 bytes,
+#    2 is 2*512 bytes, etc.
+# 4) [Optional] Full path to U-Boot SPL
+#    If a corresponding .md5 file exists, that is used to verify reading back
+# 5) [Required if SPL] Start of where to place the SPL IN 512 BYTE BLOCKS!
+#    e.g. 0 is 0*512 bytes,
+# Use:
+# write_uboot "mtdblock0" "/mnt/usb/u-boot.bin" 2 "/mnt/usb/SPL" 400
+# write_uboot "mmbclk0boot0" "/mnt/usb/u-boot.bin" 0
+
+write_uboot() {
+	UBOOT_DN="${1}"
+	UBOOT_IMG="${2}"
+	UBOOT_IMG_OFFS="${3}"
+	UBOOT_SPL="${4:--1}"
+	UBOOT_SPL_OFFS="${5:--1}"
+
+        echo "========== Writing new U-boot image =========="
+        (
+		# shellcheck disable=SC3040
+		set -x -o pipefail
+
+		# If the device name (DN) is eMMC then we likely need to unlock
+		# the boot partition. If the force_ro file exists, then we just
+		# blindly poke it.
+		if [ -e "/sys/block/${UBOOT_DN}/force_ro" ]; then
+			echo 0 > "/sys/block/${UBOOT_DN}/force_ro"
+		fi
+
+		# Write image to offset. Always assumes a bs of 512!
+		# This does not error on write failure, maybe it should?
+		dd bs=512 seek="${UBOOT_IMG_OFFS}" if="${UBOOT_IMG}" \
+			of="/dev/${UBOOT_DN}" conv=fsync || \
+			crit_exit "U-Boot img write"
+
+		# If provided, write SPL to its offset. Always assumes a bs of 512!
+		if [ "${UBOOT_SPL}" != "-1" ] && [ "${UBOOT_SPL_OFFS}" != "-1" ]; then
+			dd bs=512 seek="${UBOOT_SPL_OFFS}" if="${UBOOT_SPL}" \
+				of="/dev/${UBOOT_DN}" conv=fsync || \
+				crit_exit "U-Boot spl write"
+		fi
+
+		# Flush any buffer cache
+		sync
+		echo 3 > /proc/sys/vm/drop_caches
+
+		if [ -e "/sys/block/${UBOOT_DN}/force_ro" ]; then
+			echo 1 > "/sys/block/${UBOOT_DN}/force_ro"
+		fi
+
+		# Check md5sum of image
+		if [ -e "${UBOOT_IMG}.md5" ]; then
+                        BYTES=$(wc -c "${UBOOT_IMG}" | cut -d ' ' -f 1)
+                        EXPECTED=$(cut -f 1 -d ' ' "${UBOOT_IMG}.md5")
+			# This looks annoyingly convoluted because it is.
+			# In order to not get bogged down by reading very slowly
+			# we read a large chunk, jump to where we need to start
+			# then read the exact byte count. So we arn't using a bs
+			# of 1 on the whole disk. It could probably be optimized
+			# but it works.
+                        ACTUAL=$(dd if="/dev/${UBOOT_DN}" bs=4M | \
+                          dd skip="${UBOOT_IMG_OFFS}" bs=512 | \
+			  dd bs=1 count="${BYTES}" | \
+			  md5sum | \
+                          cut -f 1 -d ' ')
+                        if [ "${ACTUAL}" != "${EXPECTED}" ]; then
+				crit_exit "U-Boot image verify"
+                        fi
+		fi
+
+		# Check md5sum of SPL
+		if [ -e "${UBOOT_SPL}.md5" ]; then
+                        BYTES=$(wc -c "${UBOOT_SPL}" | cut -d ' ' -f 1)
+                        EXPECTED=$(cut -f 1 -d ' ' "${UBOOT_SPL}.md5")
+			# This looks annoyingly convoluted because it is.
+			# In order to not get bogged down by reading very slowly
+			# we read a large chunk, jump to where we need to start
+			# then read the exact byte count. So we arn't using a bs
+			# of 1 on the whole disk. It could probably be optimized
+			# but it works.
+                        ACTUAL=$(dd if="/dev/${UBOOT_DN}" bs=4M | \
+                          dd skip="${UBOOT_SPL_OFFS}" bs=512 | \
+			  dd bs=1 count="${BYTES}" | \
+			  md5sum | \
+                          cut -f 1 -d ' ')
+                        if [ "${ACTUAL}" != "${EXPECTED}" ]; then
+				crit_exit "U-Boot SPL verify"
+                        fi
+		fi
+	) > /tmp/logs/u-boot-writeimage 2>&1
 }
