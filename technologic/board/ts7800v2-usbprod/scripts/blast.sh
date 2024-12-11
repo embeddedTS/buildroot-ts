@@ -40,10 +40,10 @@ all_images="${sdimage} ${emmcimage} ${sataimage} ${uboot_img}"
 
 # Set up LED definitions, this needs to happen before blast_funcs.sh is sourced
 led_init() {
-	grnled_on() { echo 1 > "/sys/class/leds/green\:power/brightness" ; }
-	grnled_off() { echo 0 > "/sys/class/leds/green\:power/brightness" ; }
-	redled_on() { echo 1 > "/sys/class/leds/red\:status/brightness" ; }
-	redled_off() { echo 0 > "/sys/class/leds/red\:status/brightness" ; }
+	grnled_on() { echo 1 > "/sys/class/leds/green:power/brightness" ; }
+	grnled_off() { echo 0 > "/sys/class/leds/green:power/brightness" ; }
+	redled_on() { echo 1 > "/sys/class/leds/red:status/brightness" ; }
+	redled_off() { echo 0 > "/sys/class/leds/red:status/brightness" ; }
 
 	led_blinkloop
 }
