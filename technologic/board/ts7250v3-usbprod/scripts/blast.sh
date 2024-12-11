@@ -27,8 +27,8 @@ sdimage="${sdimage_tar} ${sdimage_img}"
 emmcimage_tar="emmcimage.tar.xz emmcimage.tar.bz2 emmcimage.tar.gz emmcimage.tar"
 emmcimage_img="emmcimage.dd.xz emmcimage.dd.bz2 emmcimage.dd.gz emmcimage.dd"
 emmcimage="${emmcimage_tar} ${emmcimage_img}"
-uboot_img="SPL"
-uboot_dtb="u-boot-dtb.bin"
+uboot_spl="SPL"
+uboot_img="u-boot-dtb.bin"
 micro_bin="micro-update.bin"
 ts7250v3_fpga_reva="ts7250v3-update-fpga-reva"
 ts7250v3_fpga="ts7250v3-update-fpga"
@@ -73,7 +73,17 @@ fi
 # in to custom blast processes
 write_images() {
 
+### Write U-Boot first, if applicable. Bail if it fails for any reason
+if [ -e "/mnt/usb/${uboot_img}" ] && [ -e "/mnt/usb/${uboot_spl}" ]; then
+        write_uboot "${UBOOT_BN}" \
+                    "/mnt/usb/${uboot_img}" 138 \
+                    "/mnt/usb/${uboot_spl}" 2
 
+        # If that failed, abort writing anything else
+        if [ -e "/tmp/failed" ]; then
+                return
+        fi
+fi
 
 ### Check for and handle SD images
 # Order of search preferences handled by sdimage variable
@@ -123,41 +133,15 @@ write_images() {
 	wait
 ) &
 
-### U-Boot is unique to every platform and therefore the full process for it
-###   needs to be replicated and customized to each platform. Some parts of the
-###   following may be more re-usable than others
-if [ -e "/mnt/usb/${uboot_img}" ] && [ -e "/mnt/usb/${uboot_dtb}" ]; then
-	echo "========== Writing new U-boot image =========="
-	(
-		set -x
-
-		echo 0 > /sys/block/"${UBOOT_BN}"/force_ro
-		dd bs=512 seek=2 if=/mnt/usb/"${uboot_img}" of=/dev/"${UBOOT_BN}"
-		dd bs=512 seek=138 if=/mnt/usb/"${uboot_dtb}" of=/dev/"${UBOOT_BN}"
-		echo 1 > /sys/block/"${UBOOT_BN}"/force_ro
-
-		if [ -e "/mnt/usb/${uboot_img}.md5" ]; then
-			BYTES=$(wc -c /mnt/usb/"${uboot_img}" | cut -d ' ' -f 1)
-			EXPECTED=$(cut -f 1 -d ' ' /mnt/usb/"${uboot_img}".md5)
-			ACTUAL=$(dd if=/dev/"${UBOOT_BN}" bs=4M | \
-			  dd skip=2 bs=512 | dd bs=1 count="${BYTES}" | md5sum | \
-			  cut -f 1 -d ' ')
-			if [ "${ACTUAL}" != "${EXPECTED}" ]; then
-				echo "U-Boot dd verify" >> /tmp/failed
-			fi
-		fi
-	) > /tmp/logs/u-boot-writeimage 2>&1 &
-fi
-
 ### Check for and program any FPGA updates
 if [ -e "/mnt/usb/${ts7250v3_fpga}" ] || [ -e "/mnt/usb/${ts7250v3_fpga_reva}" ]; then
 	echo "========== Writing FPGA update =========="
 	(
 		set -x
 		if [ "${REVC_OR_LATER}" = "1" ]; then
-			/mnt/usb/"${ts7250v3_fpga}" || err_exit "${ts7250v3_fpga}"
+			/mnt/usb/"${ts7250v3_fpga}" || crit_exit "${ts7250v3_fpga}"
 		else
-			/mnt/usb/"${ts7250v3_fpga_reva}" || err_exit "${ts7250v3_fpga_reva}"
+			/mnt/usb/"${ts7250v3_fpga_reva}" || crit_exit "${ts7250v3_fpga_reva}"
 		fi
 	) > /tmp/logs/fpga-writeimage 2>&1 &
 fi
@@ -165,17 +149,34 @@ fi
 
 # This is our automatic capture of disk images
 capture_images() {
-	if [ -b "${SD_DEV}" ]; then
+	if [ -b "${SD_DEV}" ] && \
+	   [ -z "${IR_NO_CAPTURE_SD}" ] ; then
 		capture_img_or_tar_from_disk "${SD_DEV}" "/mnt/usb" "sd"
 	fi
 
-	if [ -b "${EMMC_DEV}" ] && [ ! -e /tmp/failed ]; then
+	if [ -b "${EMMC_DEV}" ] && \
+	   [ -z "${IR_NO_CAPTURE_EMMC}" ] && \
+	   [ ! -e /tmp/failed ]; then
 		capture_img_or_tar_from_disk "${EMMC_DEV}" "/mnt/usb" "emmc"
 	fi
 }
 
 
 blast_run() {
+	# Get all options that may be set
+	get_env_options "/mnt/usb/"
+
+	# Check to see if the user wanted to only drop to a shell
+	if [ -n "${IR_SHELL_ONLY}" ]; then
+		echo "NOT running production process, dropping to shell!"
+		# Set a failed condition to not cause confusion that the process
+		# successfully completed.
+		touch /tmp/failed
+		touch /tmp/completed
+
+		exit
+	fi
+
 	# Check for any one of the valid image sources, if none exist, then start
 	# the image capture process. Note that, if uboot_img exists, then no images
 	# are captured. If it does not exist, the uboot_img is not captured as this
@@ -208,9 +209,13 @@ blast_run() {
 
 	# If anything failed at this point, be noisy on console about it
 	if [ -e /tmp/failed ] ;then
-		echo "One or more images failed! $(cat /tmp/failed)"
+		echo ""
+		echo "One or more operations failed!"
+		echo "=================================================="
+		cat /tmp/failed
+		echo "=================================================="
 		echo "Check /tmp/logs for more information."
 	else
-		echo "All images wrote correctly!"
+		echo "All operations succeeded!"
 	fi
 }

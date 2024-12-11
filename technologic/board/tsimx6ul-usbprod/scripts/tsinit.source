@@ -21,7 +21,7 @@ elif test $model -eq '7180'; then
 	load usb 0:1 ${fdtaddr} /boot/imx6ul-ts7180.dtb;
 fi
 
-setenv bootargs ${cmdline_append};
+setenv bootargs ${cmdline_append} imx_type=${imx_type};
 
 load usb 0:1 ${loadaddr} /boot/zImage;
 load usb 0:1 ${ramdiskaddr} /boot/rootfs.cpio.gz;

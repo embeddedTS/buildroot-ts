@@ -71,6 +71,8 @@ echo "${vers}" > "${TMP_DIR}"/root.version-cust
 
 echo "Creating md5sums.txt md5sums"
 (
+# shellcheck disable=SC2164
 cd "${TMP_DIR}"/
+# shellcheck disable=SC2094
 find . -type f \( ! -name md5sums.txt \) -exec md5sum "{}" + > md5sums.txt
 )

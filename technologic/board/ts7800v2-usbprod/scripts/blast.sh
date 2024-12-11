@@ -61,6 +61,17 @@ mkdir /tmp/logs
 # in to custom blast processes
 write_images() {
 
+### Write U-Boot first, if applicable. Bail if it fails for any reason
+if [ -e "/mnt/usb/${uboot_img}" ]; then
+        write_uboot "${UBOOT_BN}" \
+                    "/mnt/usb/${uboot_img}" 0
+
+        # If that failed, abort writing anything else
+        if [ -e "/tmp/failed" ]; then
+                return
+        fi
+fi
+
 ### Check for and handle SD images
 # Order of search preferences handled by sdimage variable
 (
@@ -146,38 +157,18 @@ write_images() {
 
 	wait
 ) &
-
-### U-Boot is unique to every platform and therefore the full process for it
-###   needs to be replicated and customized to each platform. Some parts of the
-###   following may be more re-usable than others
-if [ -e "/mnt/usb/${uboot_img}" ]; then
-	echo "========== Writing new U-boot image =========="
-	(
-		set -x
-
-		echo 0 > /sys/block/"${UBOOT_BN}"/force_ro
-		dd bs=1024 if=/mnt/usb/"${uboot_img}" of="${UBOOT_DEV}" conv=fsync,notrunc
-		if [ -e "/mnt/usb/${uboot_img}.md5" ]; then
-			BYTES=$(wc -c /mnt/usb/"${uboot_img}" | cut -d ' ' -f 1)
-			EXPECTED=$(cut -f 1 -d ' ' /mnt/usb/"${uboot_img}".md5)
-			ACTUAL=$(dd if="${UBOOT_DEV}" bs=4M | head -c "${BYTES}" | md5sum | cut -f 1 -d ' ')
-			if [ "${ACTUAL}" != "${EXPECTED}" ]; then
-				echo "U-Boot dd verify" >> /tmp/failed
-			fi
-		fi
-	) > /tmp/logs/u-boot-writeimage 2>&1 &
-fi
-
-
 }
 
 # This is our automatic capture of disk images
 capture_images() {
-	if [ -b "${SD_DEV}" ]; then
+	if [ -b "${SD_DEV}" ] && \
+	   [ -z "${IR_NO_CAPTURE_SD}" ]; then
 		capture_img_or_tar_from_disk "${SD_DEV}" "/mnt/usb" "sd"
 	fi
 
-	if [ -b "${EMMC_DEV}" ] && [ ! -e /tmp/failed ]; then
+	if [ -b "${EMMC_DEV}" ] && \
+	   [ -z "${IR_NO_CAPTURE_EMMC}" ] && \
+	   [ ! -e /tmp/failed ]; then
 		capture_img_or_tar_from_disk "${EMMC_DEV}" "/mnt/usb" "emmc"
 	fi
 
@@ -185,12 +176,29 @@ capture_images() {
 	# and the device node is a block device.
 	readlink /sys/class/block/"$(basename ${SATA_DEV})" | grep sata >/dev/null
 	RET=${?}
-	if [ "${RET}" -eq 0 ] && [ -b "${SATA_DEV}" ] && [ ! -e /tmp/failed ]; then
+	if [ "${RET}" -eq 0 ] && \
+	   [ -b "${SATA_DEV}" ] && \
+	   [ -z "${IR_NO_CAPTURE_SATA}" ] && \
+	   [ ! -e /tmp/failed ]; then
 		capture_img_or_tar_from_disk "${SATA_DEV}" "/mnt/usb" "sata"
 	fi
 }
 
 blast_run() {
+	# Get all options that may be set
+	get_env_options "/mnt/usb/"
+
+	# Check to see if the user wanted to only drop to a shell
+	if [ -n "${IR_SHELL_ONLY}" ]; then
+		echo "NOT running production process, dropping to shell!"
+		# Set a failed condition to not cause confusion that the process
+		# successfully completed.
+		touch /tmp/failed
+		touch /tmp/completed
+
+		exit
+	fi
+
 	# Check for any one of the valid image sources, if none exist, then start
 	# the image capture process. Note that, if uboot_img nor fpga_* exist, then
 	# no images are captured. If they do not exist, neither are captured as
@@ -222,9 +230,13 @@ blast_run() {
 
 	# If anything failed at this point, be noisy on console about it
 	if [ -e /tmp/failed ] ;then
-		echo "One or more images failed! $(cat /tmp/failed)"
+		echo ""
+		echo "One or more operations failed!"
+		echo "=================================================="
+		cat /tmp/failed
+		echo "=================================================="
 		echo "Check /tmp/logs for more information."
 	else
-		echo "All images wrote correctly!"
+		echo "All operations succeeded!"
 	fi
 }
