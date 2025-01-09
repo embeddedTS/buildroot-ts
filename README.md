@@ -4,6 +4,7 @@ This repository implements BR_EXTERNAL for embeddedTS products. Currently this i
 * TS-4100
 * TS-4900
 * TS-7100
+* TS-7180
 * TS-7250-V3
 * TS-7400-V2
 * TS-7553-V2
@@ -50,6 +51,7 @@ We will update the Buildroot release tag used as time goes on, we will only push
 | TS-4100 | [ts4100_defconfig](#ts4100_defconfig) | [tsimx6ul_usbprod_defconfig](#tsimx6ul_usbprod_defconfig) ||
 | TS-4900 | [tsimx6_defconfig](#tsimx6_defconfig) | [tsimx6_usbprod_defconfig](#tsimx6_usbprod_defconfig) | [tsimx6_graphical_defconfig](#tsimx6_graphical_defconfig) |
 | TS-7100 | [ts7100_defconfig](#ts7100_defconfig) | [ts7100_usbprod_defconfig](#ts7100_usbprod_defconfig) | |
+| TS-7180 | [ts7180_defconfig](#ts7180_defconfig) | [ts7180_usbprod_defconfig](#ts7180_usbprod_defconfig) | |
 | TS-7250-V3 | [ts7250v3_defconfig](#ts7250v3_defconfig) | [ts7250v3_usbprod_defconfig](#ts7250v3_usbprod_defconfig)  ||
 | TS-7400-V2| [ts7400v2_defconfig](#ts7400v2_defconfig) | [tsimx28_usbprod_defconfig](#tsimx28_usbprod_defconfig) ||
 | TS-7553-V2 | [ts7553v2_defconfig](#ts7553v2_defconfig) | [tsimx6ul_usbprod_defconfig](#tsimx6ul_usbprod_defconfig) ||
@@ -80,7 +82,7 @@ Can be built with (See [Using Docker](#using-docker) for how to build in Docker 
 
 	make ts7100_defconfig all
 
- ### ts7100_usbprod_defconfig
+### ts7100_usbprod_defconfig
 * Supports TS-7100 devices
 * Able to capture disk images and/or write out disk images to all supported media on devices
 * Outputs `ts7100-usb-image-replicator-rootfs.tar.xz` and `ts7100-usb-image-replicator.dd.xz` that can be written to a USB drive and booted on supported devices
@@ -90,6 +92,26 @@ Can be built with (See [Using Docker](#using-docker) for how to build in Docker 
 Can be built with (See [Using Docker](#using-docker) for how to build in Docker container):
 
 	make ts7100_usbprod_defconfig all
+
+### ts7180_defconfig
+* Supports TS-7180 devices
+* Generates a minimal Linux with hardware support
+* Outputs `rootfs.tar.xz` which can be written to any boot device for the platform: USB, eMMC.
+
+Can be built with (See [Using Docker](#using-docker) for how to build in Docker container):
+
+	make ts7180_defconfig all
+
+### ts7180_usbprod_defconfig
+* Supports TS-7180 devices
+* Able to capture disk images and/or write out disk images to all supported media on devices
+* Outputs `ts7180-usb-image-replicator-rootfs.tar.xz` and `ts7180-usb-image-replicator.dd.xz` that can be written to a USB drive and booted on supported devices
+* The `ts71800-usb-image-replicator.dd.xz` file is self expanding after first boot. It is intended to make the image capture process easier
+* See the respective product manual for more information on the Image Replicator tool
+
+Can be built with (See [Using Docker](#using-docker) for how to build in Docker container):
+
+	make ts7180_usbprod_defconfig all
 
 ### ts7250v3_defconfig
 * Supports TS-7250-V3 devices
