@@ -20,7 +20,7 @@ UBOOT_DEV="mtdblock0"
 
 # Create array of valid file names for each media type
 sdimage_tar="sdimage.tar.xz sdimage.tar.bz2 sdimage.tar.gz sdimage.tar"
-sdimage_img="adimage.dd.xz sdimage.dd.bz2 sdimage.dd.gz sdimage.dd"
+sdimage_img="sdimage.dd.xz sdimage.dd.bz2 sdimage.dd.gz sdimage.dd"
 sdimage="${sdimage_tar} ${sdimage_img}"
 emmcimage_tar="emmcimage.tar.xz emmcimage.tar.bz2 emmcimage.tar.gz emmcimage.tar"
 emmcimage_img="emmcimage.dd.xz emmcimage.dd.bz2 emmcimage.dd.gz emmcimage.dd"
