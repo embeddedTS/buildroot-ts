@@ -1,5 +1,5 @@
 config BR2_PACKAGE_TS7400V2_UBOOT
-	bool "Binary bootable U-Boot blob for TS-7400"
+	bool "Binary bootable U-Boot blob for TS-7400-V2"
 	help
 	  Pre-built binary blob for making bootable SD/eMMC devices.
 
