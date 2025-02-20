@@ -1,7 +1,7 @@
 config BR2_PACKAGE_TSSUPERVISORUPDATE
 	bool "tssupervisorupdate"
 	help
-	  Tool for updating the supervisory microcntroller on certain
+	  Tool for updating the supervisory microcontroller on certain
 	  embeddedTS platforms.
 
 	  Currently used for:
