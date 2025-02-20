@@ -22,6 +22,7 @@ endchoice
 menu "Misc Tools for Device Support"
 	source "$BR2_EXTERNAL_TECHNOLOGIC_PATH/package/growpart/Config.in"
 	source "$BR2_EXTERNAL_TECHNOLOGIC_PATH/package/idleinject/Config.in"
+	source "$BR2_EXTERNAL_TECHNOLOGIC_PATH/package/tsmicroctl/Config.in"
 	source "$BR2_EXTERNAL_TECHNOLOGIC_PATH/package/tssupervisorupdate/Config.in"
 endmenu
 
