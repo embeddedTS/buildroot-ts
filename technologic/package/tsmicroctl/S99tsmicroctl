@@ -1,0 +1,51 @@
+#!/bin/sh
+#
+# Start tsmicroctl TS-SILO monitoring daemon
+#
+
+DAEMON="tsmicroctl"
+
+umask 077
+
+start() {
+	printf 'Starting %s: ' "$DAEMON"
+	start-stop-daemon -S -q -m -p /var/run/tsmicroctl.pid -b \
+		--exec /usr/bin/tsmicroctl -- --daemon SILO_PCT
+	status=$?
+	if [ "$status" -eq 0 ]; then
+		echo "OK"
+	else
+		echo "FAIL"
+	fi
+}
+stop() {
+	printf 'Stopping %s: ' "$DAEMON"
+	start-stop-daemon -K -q -m -p /var/run/tsmicroctl.pid
+	status=$?
+	if [ "$status" -eq 0 ]; then
+		echo "OK"
+	else
+		echo "FAIL"
+	fi
+}
+restart() {
+	stop
+	start
+}
+
+case "$1" in
+	start)
+		start
+		;;
+	stop)
+		stop
+		;;
+	restart|reload)
+		restart
+		;;
+	*)
+		echo "Usage: $0 {start|stop|restart}"
+		exit 1
+esac
+
+exit $?

@@ -1,0 +1,28 @@
+comment "tsmicroctl is not compatible with the selected platform utilities"
+	depends on (BR2_PACKAGE_TS4100_UTILS || BR2_PACKAGE_TS4900_UTILS || \
+		BR2_PACKAGE_TS7400V2_UTILS_LINUX4X || BR2_PACKAGE_TS7553V2_UTILS || \
+		BR2_PACKAGE_TS7670_UTILS_LINUX4X || BR2_PACKAGE_TS7680_UTILS || \
+		BR2_PACKAGE_TS7820_UTILS)
+
+config BR2_PACKAGE_TSMICROCTL
+	depends on !(BR2_PACKAGE_TS4100_UTILS || BR2_PACKAGE_TS4900_UTILS || \
+		BR2_PACKAGE_TS7400V2_UTILS_LINUX4X || BR2_PACKAGE_TS7553V2_UTILS || \
+		BR2_PACKAGE_TS7670_UTILS_LINUX4X || BR2_PACKAGE_TS7680_UTILS || \
+		BR2_PACKAGE_TS7820_UTILS)
+	bool "tsmicroctl"
+	help
+	  Standalone utility for interacting with the supervisory microcontroller
+	  for TS-7100, TS-7180, and TS-7250-V3.
+
+	  Can be used alongside platform specific utilities for the compatible
+	  platforms.
+
+if BR2_PACKAGE_TSMICROCTL
+
+config BR2_PACKAGE_TSMICROCTL_PCT
+        string "Trip battery percentage"
+        default "90"
+        help
+	  Initiate a safe reboot process once the external power is removed and
+	  the TS-SILO charge level falls below the specified percentage.
+endif

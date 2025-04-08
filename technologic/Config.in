@@ -19,16 +19,10 @@ choice
 	source "$BR2_EXTERNAL_TECHNOLOGIC_PATH/package/ts7820-utils/Config.in"
 endchoice
 
-menu "Light and Versatile Graphics Library (LVGL)"
-	source "$BR2_EXTERNAL_TECHNOLOGIC_PATH/package/liblvgl/Config.in"
-	source "$BR2_EXTERNAL_TECHNOLOGIC_PATH/package/lv_drivers/Config.in"
-endmenu
-
-source "$BR2_EXTERNAL_TECHNOLOGIC_PATH/package/ts7100z-lvgl-ui-demo/Config.in"
-
 menu "Misc Tools for Device Support"
 	source "$BR2_EXTERNAL_TECHNOLOGIC_PATH/package/growpart/Config.in"
 	source "$BR2_EXTERNAL_TECHNOLOGIC_PATH/package/idleinject/Config.in"
+	source "$BR2_EXTERNAL_TECHNOLOGIC_PATH/package/tsmicroctl/Config.in"
 	source "$BR2_EXTERNAL_TECHNOLOGIC_PATH/package/tssupervisorupdate/Config.in"
 endmenu
 
@@ -40,3 +34,10 @@ menu "Bootloader Binaries"
 	source "$BR2_EXTERNAL_TECHNOLOGIC_PATH/package/ts7670-uboot/Config.in"
 	source "$BR2_EXTERNAL_TECHNOLOGIC_PATH/package/ts7400v2-uboot/Config.in"
 endmenu
+
+menu "Light and Versatile Graphics Library (LVGL)"
+	source "$BR2_EXTERNAL_TECHNOLOGIC_PATH/package/liblvgl/Config.in"
+	source "$BR2_EXTERNAL_TECHNOLOGIC_PATH/package/lv_drivers/Config.in"
+endmenu
+
+source "$BR2_EXTERNAL_TECHNOLOGIC_PATH/package/ts7100z-lvgl-ui-demo/Config.in"

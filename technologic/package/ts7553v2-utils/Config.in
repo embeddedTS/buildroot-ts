@@ -1,6 +1,7 @@
 config BR2_PACKAGE_TS7553V2_UTILS
 	bool "ts7553v2-utils"
 	select BR2_PACKAGE_CAIRO
+	select BR2_PACKAGE_LIBGPIOD
 	help
 	  Utilities tools for TS-7553-V2 SBC.
 

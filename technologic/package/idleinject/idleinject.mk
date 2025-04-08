@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-IDLEINJECT_VERSION = v1.0.1
+IDLEINJECT_VERSION = v1.1.0
 IDLEINJECT_SITE = $(call github,embeddedTS,idleinject,$(IDLEINJECT_VERSION))
 IDLEINJECT_DEPENDENCIES = procps-ng
 IDLEINJECT_LICENSE = BSD-2-Clause

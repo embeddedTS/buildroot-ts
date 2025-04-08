@@ -1,5 +1,6 @@
 config BR2_PACKAGE_TS7680_UTILS
 	bool "ts7680-utils"
+	select BR2_PACKAGE_LIBGPIOD
 	help
 	  Utilities tools for TS-7680 SBC.
 
