@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-TSMICROCTL_VERSION = v1.0.3
+TSMICROCTL_VERSION = v1.0.4
 TSMICROCTL_SITE = $(call github,embeddedTS,tsmicroctl,$(TSMICROCTL_VERSION))
 TSMICROCTL_LICENSE = BSD-2-Clause
 TSMICROCTL_LICENSE_FILES = LICENSE
