@@ -2,6 +2,7 @@
 This repository implements BR_EXTERNAL for embeddedTS products. Currently this includes support for:
 
 * TS-4100
+* TS-4300
 * TS-4900
 * TS-7100
 * TS-7180
@@ -12,6 +13,8 @@ This repository implements BR_EXTERNAL for embeddedTS products. Currently this i
 * TS-7680
 * TS-7800-V2
 * TS-7970
+* TS-9370
+* TS-9390
 * TS-TPC-7970
 
 
@@ -49,6 +52,7 @@ We will update the Buildroot release tag used as time goes on, we will only push
 | Product | Buildroot base defconfig | USB Image Replicator | Specialty |
 |---------|--------------------------|----------------------|-----------|
 | TS-4100 | [ts4100_defconfig](#ts4100_defconfig) | [tsimx6ul_usbprod_defconfig](#tsimx6ul_usbprod_defconfig) ||
+| TS-4300 | [tsimx9_defconfig](#tsimx9_defconfig) | [tsimx9_usbprod_defconfig](#tsimx9_usbprod_defconfig) ||
 | TS-4900 | [tsimx6_defconfig](#tsimx6_defconfig) | [tsimx6_usbprod_defconfig](#tsimx6_usbprod_defconfig) | [tsimx6_graphical_defconfig](#tsimx6_graphical_defconfig) |
 | TS-7100 | [ts7100_defconfig](#ts7100_defconfig) | [ts7100_usbprod_defconfig](#ts7100_usbprod_defconfig) | |
 | TS-7180 | [ts7180_defconfig](#ts7180_defconfig) | [ts7180_usbprod_defconfig](#ts7180_usbprod_defconfig) | |
@@ -59,6 +63,8 @@ We will update the Buildroot release tag used as time goes on, we will only push
 | TS-7680 | [ts7680_defconfig](#ts7680_defconfig) |  ||
 | TS-7800-V2 | [ts7800v2_defconfig](#ts7800v2_defconfig) | [ts7800v2_usbprod_defconfig](#ts7800v2_usbprod_defconfig)  ||
 | TS-7970 | [tsimx6_defconfig](#tsimx6_defconfig) | [tsimx6_usbprod_defconfig](#tsimx6_usbprod_defconfig) | [tsimx6_graphical_defconfig](#tsimx6_graphical_defconfig) |
+| TS-9370 | [tsimx9_defconfig](#tsimx9_defconfig) | [tsimx9_usbprod_defconfig](#tsimx9_usbprod_defconfig) ||
+| TS-9390 | [tsimx9_defconfig](#tsimx9_defconfig) | [tsimx9_usbprod_defconfig](#tsimx9_usbprod_defconfig) ||
 | TS-TPC-7990 | [tsimx6_defconfig](#tsimx6_defconfig) | [tsimx6_usbprod_defconfig](#tsimx6_usbprod_defconfig) | [tsimx6_graphical_defconfig](#tsimx6_graphical_defconfig) |
 
 All Buildroot base defconfigs above are compatible with the [Extra Packages defconfig fragment](#extra-packages).
@@ -66,7 +72,7 @@ All Buildroot base defconfigs above are compatible with the [Extra Packages defc
 
 ### ts4100_defconfig
 * Supports TS-4100 devices
-* Generates a minimal Linux with hardware support (based on 5.10 kernel)
+* Generates a minimal Linux with hardware support
 * Outputs `rootfs.tar.xz` which can be written to any boot device for the platform: USB, SD, eMMC, etc.
 
 Can be built with (See [Using Docker](#using-docker) for how to build in Docker container):
@@ -75,7 +81,7 @@ Can be built with (See [Using Docker](#using-docker) for how to build in Docker 
 
 ### ts7100_defconfig
 * Supports TS-7100 devices
-* Generates a minimal Linux with hardware support (based on 5.10 kernel)
+* Generates a minimal Linux with hardware support
 * Outputs `rootfs.tar.xz` which can be written to any boot device for the platform: USB, eMMC.
 
 Can be built with (See [Using Docker](#using-docker) for how to build in Docker container):
@@ -115,7 +121,7 @@ Can be built with (See [Using Docker](#using-docker) for how to build in Docker 
 
 ### ts7250v3_defconfig
 * Supports TS-7250-V3 devices
-* Generates a minimal Linux with hardware support (based on 5.10 kernel)
+* Generates a minimal Linux with hardware support
 * Outputs `rootfs.tar.xz` which can be written to any boot device for the platform: USB, eMMC, etc.
 
 Can be built with (See [Using Docker](#using-docker) for how to build in Docker container):
@@ -135,7 +141,7 @@ Can be built with (See [Using Docker](#using-docker) for how to build in Docker 
 
 ### ts7400v2_defconfig
 * Supports TS-7400-V2 devices with PCB revision B or newer
-* Generates a minimal Linux with hardware support (based on 5.10 kernel)
+* Generates a minimal Linux with hardware support
 * Outputs `sdcard.img` which can be written to to SD or eMMC on the device.
 
 Can be built with (See [Using Docker](#using-docker) for how to build in Docker container):
@@ -144,7 +150,7 @@ Can be built with (See [Using Docker](#using-docker) for how to build in Docker 
 
 ### ts7553v2_defconfig
 * Supports TS-7553-V2 devices
-* Generates a minimal Linux with hardware support (based on 5.10 kernel)
+* Generates a minimal Linux with hardware support
 * Outputs `rootfs.tar.xz` which can be written to any boot device for the platform: USB, SD, eMMC, etc.
 
 Can be built with (See [Using Docker](#using-docker) for how to build in Docker container):
@@ -153,7 +159,7 @@ Can be built with (See [Using Docker](#using-docker) for how to build in Docker 
 
 ### ts7670_defconfig
 * Supports TS-7670 devices with PCB revision D or newer
-* Generates a minimal Linux with hardware support (based on 5.10 kernel)
+* Generates a minimal Linux with hardware support
 * Outputs `sdcard.img` which can be written to to SD or eMMC on the device.
 
 Can be built with (See [Using Docker](#using-docker) for how to build in Docker container):
@@ -174,7 +180,7 @@ Can be built with (See [Using Docker](#using-docker) for how to build in Docker 
 
 ### ts7800v2_defconfig
 * Supports TS-7800-V2 devices
-* Generates a minimal Linux with hardware support (based on 4.4 kernel)
+* Generates a minimal Linux with hardware support
 * Outputs `rootfs.tar.xz` which can be written to any boot device for the platform: USB, eMMC, SATA, NFS, etc.
 
 Can be built with (See [Using Docker](#using-docker) for how to build in Docker container):
@@ -217,7 +223,7 @@ This is not an issue for the most common use-case of writing custom images to de
 ### tsimx6_defconfig
 **Note! See [#60](https://github.com/embeddedTS/buildroot-ts/issues/60) if using a platform with Silex Wi-Fi devices!**
 * Supports TS-4900, TS-7970, and TS-TPC-7990 devices
-* Generates a minimal Linux with hardware support (based on 5.10 kernel)
+* Generates a minimal Linux with hardware support
 * Outputs `rootfs.tar.xz` which can be written to any boot device for the platform: USB, eMMC, SATA, NFS, etc.
 
 Can be built with (See [Using Docker](#using-docker) for how to build in Docker container):
@@ -258,6 +264,26 @@ Can be built with (See [Using Docker](#using-docker) for how to build in Docker 
 Can be built with (See [Using Docker](#using-docker) for how to build in Docker container):
 
 	make tsimx6ul_usbprod_defconfig all
+
+### tsimx9_defconfig
+* Supports TS-4300, TS-9370, and TS-9390 devices
+* Generates a minimal Linux with hardware support
+* Outputs `rootfs.tar.xz` which can be written to any boot device for the platform: USB, eMMC, NFS, etc.
+
+Can be built with (See [Using Docker](#using-docker) for how to build in Docker container):
+
+	make tsimx9_defconfig all
+
+### tsimx9_usbprod_defconfig
+* Image Replication tool for TS-4300, TS-9370, and TS-9390 devices
+* Able to capture disk images and/or write out disk images to all supported media on devices
+* Outputs `tsimx9-usb-image-replicator-rootfs.tar.xz` and `tsimx9-usb-image-replicator.dd.xz` that can be written to a USB drive and booted on supported devices
+* The `tsimx9-usb-image-replicator.dd.xz` file is self expanding after first boot. It is intended to make the image capture process easier
+* See the respective product manual for more information on the Image Replicator tool
+
+Can be built with (See [Using Docker](#using-docker) for how to build in Docker container):
+
+	make tsimx9_usbprod_defconfig all
 
 ## Extra Packages
 
