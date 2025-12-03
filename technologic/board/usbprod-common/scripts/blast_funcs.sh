@@ -194,10 +194,6 @@ untar_image() {
 		esac
 
 		# Erase and recreate partition table from scratch
-		# Assume SD eraseblock size of 4 MiB, align to that.
-		# Use MBR format partition table
-		# Use whole disk
-		# Set ext4 NOTE! see mkfs.ext4 below!
 		dd if=/dev/zero of="${DST_DEV}" bs=512 count=1 || \
 		  err_exit "clear MBR"
 
@@ -206,6 +202,7 @@ untar_image() {
 		  err_exit "mklabel ${DST_DEV}"
 
 		# Create a single primary partition
+		# Assume eraseblock size of 4 MiB, align to that.
 		parted -s -a optimal "${DST_DEV}" mkpart primary "${FS_FMT}" \
 		  4MiB 100% || err_exit "mkpart ${DST_DEV}"
 
