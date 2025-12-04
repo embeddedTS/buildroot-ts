@@ -40,15 +40,18 @@ get_stream_decomp() {
 		"bz2")
 			CMD="bzcat"
 			;;
-		"xz")
-			CMD="xzcat"
-			;;
 		"gz")
 			CMD="gunzip -c"
 			;;
 		# If extension isn't a compression extension, then just cat it
 		"tar"|"dd")
 			CMD="cat"
+			;;
+		"xz")
+			CMD="xzcat"
+			;;
+		"zst")
+			CMD="zstdcat"
 			;;
 		*)
 			err_exit "${FILE_PATH} unknown compression"
