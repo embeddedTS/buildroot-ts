@@ -1,7 +1,0 @@
-# mkimage -A arm -T script -C none -n 'boot' -d /boot/boot.source /boot/boot.scr
-
-load ${devtype} ${devnum}:${distro_bootpart} ${fdt_addr_r} /boot/armada-385-ts7840.dtb;
-load ${devtype} ${devnum}:${distro_bootpart} ${kernel_addr_r} /boot/zImage;
-load ${devtype} ${devnum}:${distro_bootpart} ${ramdisk_addr_r} /boot/rootfs.cpio.gz;
-
-bootz ${kernel_addr_r} ${ramdisk_addr_r}:${filesize} ${fdt_addr_r}

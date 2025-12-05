@@ -1,4 +1,3 @@
-
 # embeddedTS Buildroot
 This repository implements BR_EXTERNAL for embeddedTS products. Currently this includes support for:
 
@@ -11,7 +10,6 @@ This repository implements BR_EXTERNAL for embeddedTS products. Currently this i
 * TS-7670
 * TS-7680
 * TS-7800-V2
-* TS-7840
 * TS-7970
 * TS-TPC-7970
 
@@ -58,7 +56,6 @@ We will update the Buildroot release tag used as time goes on, we will only push
 | TS-7670 | [ts7670_defconfig](#ts7670_defconfig) | [tsimx28_usbprod_defconfig](#tsimx28_usbprod_defconfig) ||
 | TS-7680 | [ts7680_defconfig](#ts7680_defconfig) |  ||
 | TS-7800-V2 | [ts7800v2_defconfig](#ts7800v2_defconfig) | [ts7800v2_usbprod_defconfig](#ts7800v2_usbprod_defconfig)  ||
-| TS-7840 | [tsa38x_defconfig](#tsa38x_defconfig) | [tsa38x_usbprod_defconfig](#tsa38x_usbprod_defconfig) ||
 | TS-7970 | [tsimx6_defconfig](#tsimx6_defconfig) | [tsimx6_usbprod_defconfig](#tsimx6_usbprod_defconfig) | [tsimx6_graphical_defconfig](#tsimx6_graphical_defconfig) |
 | TS-TPC-7990 | [tsimx6_defconfig](#tsimx6_defconfig) | [tsimx6_usbprod_defconfig](#tsimx6_usbprod_defconfig) | [tsimx6_graphical_defconfig](#tsimx6_graphical_defconfig) |
 
@@ -172,25 +169,6 @@ Can be built with (See [Using Docker](#using-docker) for how to build in Docker 
 Can be built with (See [Using Docker](#using-docker) for how to build in Docker container):
 
 	make ts7800v2_usbprod_defconfig all
-
-### tsa38x_defconfig
-* Supports TS-7840 devices
-* Generates a minimal Linux with hardware support (based on 5.10 kernel)
-* Outputs `rootfs.tar.xz` which can be written to any boot device for the platform: USB, eMMC, SATA, NFS, etc.
-
-Can be built with (See [Using Docker](#using-docker) for how to build in Docker container):
-
-	make tsa38x_defconfig all
-
- ### tsa38x_usbprod_defconfig
-* Supports TS-7840 devices
-* Generates a tarball for use on a USB drive to boot the device, run a script named `blast.sh` from the drive to write and verify or capture images from the device media. See the respective product manual for information on this Production Mechanism.
-
-
-Can be built with (See [Using Docker](#using-docker) for how to build in Docker container):
-
-	make tsa38x_usbprod_defconfig all
-This outputs a tarball to `buildroot/output/images/tsa38x-usb-production-rootfs-${DATESTAMP}.tar.xz` intended to be written to a USB drive with one partition which is formatted either `ext2`, `ext3`, `ext4`, or `FAT32 (including vfat)` with an MBR or GPT partition table.
 
 ### tsimx28_usbprod_defconfig
 * Image Replication tool for TS-7670 and TS-7400-V2 device
