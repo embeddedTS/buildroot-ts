@@ -19,10 +19,14 @@ start() {
 		mkdir /mnt/usb/ > /dev/null 2>&1
 		mount -o ro /dev/sd${x}1 /mnt/usb/
 		if [ -e /mnt/usb/blast.sh ]; then
-			# First, source the script in to this shell and
+			# First, source the common script in to this shell and
 			# start the LED blinking process
+			. /mnt/usb/blast_funcs.sh
+			led_blinkloop &
+
+			# Source the platform specific script so we can call in
+			# to it later
 			. /mnt/usb/blast.sh
-			led_init &
 
 			# Next, attempt to expand USB disk's first partition
 			printf "Attempting to re-size USB disk first partition: "
