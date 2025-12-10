@@ -1,6 +1,6 @@
 # syntax = docker/dockerfile:1.2
 
-FROM debian:buster
+FROM debian:bullseye
 
 RUN apt-get update && apt-get install -y \
     autogen \
@@ -53,5 +53,5 @@ ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US:en
 ENV LC_ALL en_US.UTF-8
 
-ENV debian_chroot debian_buster
+ENV debian_chroot debian_bullseye
 RUN echo "PS1='\${debian_chroot}\\[\033[01;32m\\]@\\H\[\\033[00m\\]:\\[\\033[01;34m\\]\\w\\[\\033[00m\\]\\$ '" >> /etc/bash.bashrc

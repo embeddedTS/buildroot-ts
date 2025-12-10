@@ -1,0 +1,17 @@
+# mkimage -A arm -T script -C none -n 'boot' -d boot.source boot.scr
+
+setenv bootargs "console=${console} rootwait init=/sbin/init loglevel=4"
+setenv extension_overlay_cmd 'load ${devtype} ${devnum}:${distro_bootpart} ${extension_overlay_addr} ${prefix}${extension_overlay_name}'
+setenv extension_overlay_addr ${fdtoverlay_addr_r}
+
+part uuid ${devtype} ${devnum}:${distro_bootpart} bootuuid
+if test -n "${bootuuid}"; then
+  setenv bootargs "${bootargs} root=PARTUUID=${bootuuid}"
+fi
+
+load ${devtype} ${devnum}:${distro_bootpart} ${kernel_addr_r} ${prefix}Image
+load ${devtype} ${devnum}:${distro_bootpart} ${fdt_addr_r} ${prefix}${fdtfile}
+fdt addr ${fdt_addr_r}
+extension scan
+extension apply all
+booti ${kernel_addr_r} - ${fdt_addr_r}

@@ -12,22 +12,27 @@ EMMC_DEV="/dev/mmcblk1"
 # Whole device node path for SD. Assuming it is static each boot.
 SD_DEV="/dev/mmcblk0"
 
-# The TS-7670 has two SD cards, whole path for second SD card
-SD1_DEV="/dev/mmcblk2"
+# U-Boot is stored on boot partitions of eMMC on platforms compatible with
+# this script.
+UBOOT_DEV="${EMMC_DEV}boot0"
+# The basename of the partition is needed as part of the update process in
+# order to unlock the boot partition for writing.
+UBOOT_BN=$(basename "${UBOOT_DEV}")
+
 
 # Create array of valid file names for each media type
 sdimage_tar="sdimage.tar.xz sdimage.tar.bz2 sdimage.tar.gz sdimage.tar"
 sdimage_img="sdimage.dd.xz sdimage.dd.bz2 sdimage.dd.gz sdimage.dd"
 sdimage="${sdimage_tar} ${sdimage_img}"
-sd1image_tar="sd1image.tar.xz sd1image.tar.bz2 sd1image.tar.gz sd1image.tar"
-sd1image_img="sd1image.dd.xz sd1image.dd.bz2 sd1image.dd.gz sd1image.dd"
-sd1image="${sd1image_tar} ${sd1image_img}"
 emmcimage_tar="emmcimage.tar.xz emmcimage.tar.bz2 emmcimage.tar.gz emmcimage.tar"
 emmcimage_img="emmcimage.dd.xz emmcimage.dd.bz2 emmcimage.dd.gz emmcimage.dd"
 emmcimage="${emmcimage_tar} ${emmcimage_img}"
+uboot_spl="SPL"
+uboot_img="u-boot-dtb.bin"
+
 
 # A space separated list of all potential accepted image names
-all_images="${sdimage} ${sd1image} ${emmcimage}"
+all_images="${sdimage} ${emmcimage} ${uboot_img}"
 
 
 # Once the device nodes/partitions and valid image names are established,
@@ -41,6 +46,17 @@ mkdir /tmp/logs
 # Rather than calling this function, the calls made here can be integrated
 # in to custom blast processes
 write_images() {
+### Write U-Boot first, if applicable. Bail if it fails for any reason
+if [ -e "/mnt/usb/${uboot_img}" ] && [ -e "/mnt/usb/${uboot_spl}" ]; then
+	write_uboot "${UBOOT_BN}" \
+		    "/mnt/usb/${uboot_img}" 138 \
+		    "/mnt/usb/${uboot_spl}" 2
+
+	# If that failed, abort writing anything else
+	if [ -e "/tmp/failed" ]; then
+		return
+	fi
+fi
 
 ### Check for and handle SD images
 # Order of search preferences handled by sdimage variable
@@ -58,31 +74,6 @@ write_images() {
 		for NAME in ${sdimage_img}; do
 			if [ -e "/mnt/usb/${NAME}" ]; then
 				dd_image "/mnt/usb/${NAME}" "${SD_DEV}" "sd"
-				break
-			fi
-		done
-	fi
-
-	wait
-) &
-
-
-### Check for and handle second SD card images
-# Order of search preferences handled by sd1image variable
-(
-	DID_SOMETHING=0
-	for NAME in ${sd1image_tar}; do
-		if [ -e "/mnt/usb/${NAME}" ]; then
-			untar_image "/mnt/usb/${NAME}" "${SD1_DEV}" "sd1" "ext4compat"
-			DID_SOMETHING=1
-			break
-		fi
-	done
-
-	if [ ${DID_SOMETHING} -ne 1 ]; then
-		for NAME in ${sd1image_img}; do
-			if [ -e "/mnt/usb/${NAME}" ]; then
-				dd_image "/mnt/usb/${NAME}" "${SD1_DEV}" "sd1"
 				break
 			fi
 		done
@@ -114,26 +105,19 @@ write_images() {
 
 	wait
 ) &
-
 }
 
 # This is our automatic capture of disk images
 capture_images() {
 	if [ -b "${SD_DEV}" ] && \
 	   [ -z "${IR_NO_CAPTURE_SD}" ]; then
-		capture_img_or_tar_from_disk "${SD_DEV}" "/mnt/usb" "sd" 2
-	fi
-
-	if [ -b "${SD1_DEV}" ] && \
-	   [ -z "${IR_NO_CAPTURE_SD1}" ] && \
-	   [ ! -e /tmp/failed ]; then
-		capture_img_or_tar_from_disk "${SD1_DEV}" "/mnt/usb" "sd1" 2
+		capture_img_or_tar_from_disk "${SD_DEV}" "/mnt/usb" "sd"
 	fi
 
 	if [ -b "${EMMC_DEV}" ] && \
 	   [ -z "${IR_NO_CAPTURE_EMMC}" ] && \
 	   [ ! -e /tmp/failed ]; then
-		capture_img_or_tar_from_disk "${EMMC_DEV}" "/mnt/usb" "emmc" 2
+		capture_img_or_tar_from_disk "${EMMC_DEV}" "/mnt/usb" "emmc"
 	fi
 }
 
@@ -154,7 +138,9 @@ blast_run() {
 	fi
 
 	# Check for any one of the valid image sources, if none exist, then start
-	# the image capture process.
+	# the image capture process. Note that, if uboot_img exists, then no images
+	# are captured. If it does not exist, the uboot_img is not captured as this
+	# is something that is not really standard
 	USB_HAS_VALID_IMAGES=0
 	for NAME in ${all_images}; do
 		if [ -e "/mnt/usb/${NAME}" ]; then

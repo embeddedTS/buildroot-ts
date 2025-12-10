@@ -16,7 +16,6 @@ choice
 	source "$BR2_EXTERNAL_TECHNOLOGIC_PATH/package/ts7553v2-utils/Config.in"
 	source "$BR2_EXTERNAL_TECHNOLOGIC_PATH/package/ts7670-utils-linux4x/Config.in"
 	source "$BR2_EXTERNAL_TECHNOLOGIC_PATH/package/ts7680-utils/Config.in"
-	source "$BR2_EXTERNAL_TECHNOLOGIC_PATH/package/ts7820-utils/Config.in"
 endchoice
 
 menu "Misc Tools for Device Support"
@@ -41,3 +40,8 @@ menu "Light and Versatile Graphics Library (LVGL)"
 endmenu
 
 source "$BR2_EXTERNAL_TECHNOLOGIC_PATH/package/ts7100z-lvgl-ui-demo/Config.in"
+
+menu "Buildroot Packages Locally Modified"
+	source "$BR2_EXTERNAL_TECHNOLOGIC_PATH/package/nxp-bt-wifi-firmware-ets/Config.in"
+	source "$BR2_EXTERNAL_TECHNOLOGIC_PATH/package/nxp-mwifiex-ets/Config.in"
+endmenu

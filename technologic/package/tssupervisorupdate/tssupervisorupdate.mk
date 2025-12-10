@@ -4,7 +4,7 @@
 #
 ################################################################################
 
-TSSUPERVISORUPDATE_VERSION = v1.1.1
+TSSUPERVISORUPDATE_VERSION = v1.1.5
 TSSUPERVISORUPDATE_SITE = $(call github,embeddedTS,tssupervisorupdate,$(TSSUPERVISORUPDATE_VERSION))
 TSSUPERVISORUPDATE_LICENSE = BSD-2-Clause
 TSSUPERVISORUPDATE_LICENSE_FILES = LICENSE

@@ -40,15 +40,18 @@ get_stream_decomp() {
 		"bz2")
 			CMD="bzcat"
 			;;
-		"xz")
-			CMD="xzcat"
-			;;
 		"gz")
 			CMD="gunzip -c"
 			;;
 		# If extension isn't a compression extension, then just cat it
 		"tar"|"dd")
 			CMD="cat"
+			;;
+		"xz")
+			CMD="xzcat"
+			;;
+		"zst")
+			CMD="zstdcat"
 			;;
 		*)
 			err_exit "${FILE_PATH} unknown compression"
@@ -194,10 +197,6 @@ untar_image() {
 		esac
 
 		# Erase and recreate partition table from scratch
-		# Assume SD eraseblock size of 4 MiB, align to that.
-		# Use MBR format partition table
-		# Use whole disk
-		# Set ext4 NOTE! see mkfs.ext4 below!
 		dd if=/dev/zero of="${DST_DEV}" bs=512 count=1 || \
 		  err_exit "clear MBR"
 
@@ -206,6 +205,7 @@ untar_image() {
 		  err_exit "mklabel ${DST_DEV}"
 
 		# Create a single primary partition
+		# Assume eraseblock size of 4 MiB, align to that.
 		parted -s -a optimal "${DST_DEV}" mkpart primary "${FS_FMT}" \
 		  4MiB 100% || err_exit "mkpart ${DST_DEV}"
 
@@ -519,27 +519,41 @@ wizard_update() {
 ### Blink the LEDs in a loop based on status markers
 # Currently only has three states, running [default], completed, and failed
 # The markers are /tmp files names /tmp/failed and /tmp/completed
-# In general, either the startup scripts should run this, or, if that
-# doesn't make sense, then blash.sh can start it.
-# The blast.sh file should have an led_init() function define that
-# defines the following functions
-# redled_on, redled_off, grnled_on, grnled_off
-# and then calls this loop. The toplevel call to led_init() should be
-# backgrounded.
+# The startup init scripts should be the script to call this, however,
+# individual blast.sh scripts can start it as well if desired.
+# Calls to led_blinkloop() should be backgrounded
+#
+# LED triggers could eventually be used for this, as opposed to manual
+# manipulation of the LEDs. The manual manipulation was used before all
+# platforms moved to kernel control of the LEDs. However, it is established
+# and works well with minimal system overhead. It has a bonus of being very
+# noisy if there are any issues with the LED control as well.
+#
 # The /tmp/completed file should always be created at the end of blast.sh
 # to denote the process is done. However, if /tmp/failed is created along
 # the way then the blink pattern for that will take precedence
 #
-# An example of how to set up the led_init() function:
-## led_init() {
-##	redled_on() { <command> ; }
-##	redled_off() { <command> ; }
-##	grnled_on() { <command> ; }
-##	grnled_off() { <command> ; }
-##
-##	led_blinkloop
-## }
+# This function will use green:power and try to use red:status, falling
+# back to red:indicator if red:status is not available. This paradigm
+# should be valid for all platforms moving forward.
 led_blinkloop() {
+	RED_STATUS="/sys/class/leds/red:status"
+	RED_IND="/sys/class/leds/red:indicator"
+
+	GREEN_DIR="/sys/class/leds/green:power"
+	# Prefer red:status as this is what all of the LEDs _should_ be
+	if [ -d "${RED_STATUS}" ] ; then
+		RED_DIR="${RED_STATUS}"
+	else
+		RED_DIR="${RED_IND}"
+	fi
+
+	# Set up our on/off functions
+	grnled_on() { cat "${GREEN_DIR}/max_brightness"  > "${GREEN_DIR}/brightness" ; }
+	grnled_off() { echo 0  > "${GREEN_DIR}/brightness" ; }
+	redled_on() { cat "${RED_DIR}/max_brightness"  > "${RED_DIR}/brightness" ; }
+	redled_off() { echo 0  > "${RED_DIR}/brightness" ; }
+
 	while true; do
 		# Running state
 		if [ ! -e /tmp/completed ]; then

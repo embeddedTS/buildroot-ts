@@ -32,16 +32,6 @@ uboot_img="u-boot.imx"
 # A space separated list of all potential accepted image names
 all_images="${sdimage} ${emmcimage} ${uboot_img}"
 
-# Set up LED definitions, this needs to happen before blast_funcs.sh is sourced
-led_init() {
-	grnled_on() { echo 1 > /sys/class/leds/green-led/brightness ; }
-	grnled_off() { echo 0 > /sys/class/leds/green-led/brightness ; }
-	redled_on() { echo 1 > /sys/class/leds/red-led/brightness ; }
-	redled_off() { echo 0 > /sys/class/leds/red-led/brightness ; }
-
-	led_blinkloop
-}
-
 
 # Once the device nodes/partitions and valid image names are established,
 # then source in the functions that handle the writing processes
