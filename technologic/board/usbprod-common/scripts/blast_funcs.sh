@@ -31,50 +31,6 @@ tar_args() {
 	tar --xattrs --xattrs-include='*' --acls --selinux --numeric-owner --sparse "$@"
 }
 
-### Function to determine decompression to use based on name
-### This is because busybox tar does not seem to correctly decompress
-### arbitrary compression.
-###
-### Note that this depends on file extension rather than actually IDing the
-### file's magic and will not work correctly if file is mis-named!
-# Args
-# 1) Full or relative filename with extension
-# Returns command to use
-# Use
-# CMD=$(get_stream_decomp "/path/to/file.tar.bz2")
-# ${CMD} can then be used to stream decompress the file to stdout
-
-get_stream_decomp() {
-	FILE_PATH="${1}"
-
-
-	BASE=$(basename "${FILE_PATH}")
-	EXTENSION="${BASE##*.}"
-	case "${EXTENSION}" in
-		"bz2")
-			CMD="bzcat"
-			;;
-		"gz")
-			CMD="gunzip -c"
-			;;
-		# If extension isn't a compression extension, then just cat it
-		"tar"|"dd")
-			CMD="cat"
-			;;
-		"xz")
-			CMD="xzcat"
-			;;
-		"zst")
-			CMD="zstdcat"
-			;;
-		*)
-			err_exit "${FILE_PATH} unknown compression"
-			;;
-	esac
-
-	echo "${CMD}"
-}
-
 ### Function to get all option files from a directory and export them
 ### as environment variables that can be checked.
 # Args
@@ -294,12 +250,10 @@ dd_image() {
 		mkfifo "${FIFO_DIR}"/fifo || err_exit "dd mkfifo"
 		wc -c < "${FIFO_DIR}"/fifo > "${BYTES_CNT_F}" & WC_PID=$!
 
-		# Get the correct command to stream decompress, then run the
-		# file through tee to our wc process above and then in to the
-		# dd process
+		# Stream decompress the file through tee to our wc process above
+		# and then in to the actual write to disk process
 		# XXX: Consider replacing dd with cat or redirect and sync?
-		CMD=$(get_stream_decomp "${SRC_DD}")
-		${CMD} "${SRC_DD}" | tee "${FIFO_DIR}"/fifo | \
+		bsdcat "${SRC_DD}" | tee "${FIFO_DIR}"/fifo | \
 		  dd bs=4M of="${DST_DEV}" conv=fsync \
 		  || err_exit "${DST_DEV} dd write"
 		wait $WC_PID
