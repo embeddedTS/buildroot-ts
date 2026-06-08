@@ -17,6 +17,20 @@ crit_exit() {
 	err_exit "${1}"
 }
 
+### Function to create a unified tar experience
+### Modern filesystems and therefore tarballs of those filesystems can
+### have a lot of options that require features not present in the basic
+### busybox tar implementation. These options do not uniformly apply to both
+### creation and extraction, however, they are all safe to have for both
+### creation and exctraction.
+###
+### NOTE: Extraction should have -h to follow symlinks, creation should not
+### have -h to ensure symlinks are included in the tarball rather than the
+### real file/folder!
+tar_args() {
+	tar --xattrs --xattrs-include='*' --acls --selinux --numeric-owner --sparse "$@"
+}
+
 ### Function to determine decompression to use based on name
 ### This is because busybox tar does not seem to correctly decompress
 ### arbitrary compression.
@@ -224,10 +238,8 @@ untar_image() {
 		mount "$(get_diskpart_path "${DST_DEV}" 1)" "${DST_MOUNT}" || \
 		  err_exit "mount ${DST_DEV}"
 
-		# Get the correct command to stream decompress the tarball
-		# and run it
-		CMD=$(get_stream_decomp "${SRC_TARBALL}")
-		${CMD} "${SRC_TARBALL}" | tar -xh -C "${DST_MOUNT}" || \
+		# Unpack the tarball to the final partition location
+		tar_args -xhf "${SRC_TARBALL}" -C "${DST_MOUNT}" || \
 		  err_exit "untar ${DST_DEV}"
 
 		sync
@@ -411,7 +423,8 @@ capture_img_or_tar_from_disk() {
 			# Copy source disk filesystem to our sparse file backed
 			# mount location. Use tar pipeline to ensure EVERY file
 			# property, permission, etc, is coped intact
-			tar -cf - -C "${TMP_SRC_DIR}"/ . | tar xh -C "${TMP_DIR}" \
+			tar_args -cf - -C "${TMP_SRC_DIR}"/ . | \
+			  tar_args -xh -C "${TMP_DIR}" \
 			  || err_exit "copy SRC contents to TMP DST"
 
 			# Unmount the SRC disk, we should no longer need this.
@@ -448,7 +461,7 @@ capture_img_or_tar_from_disk() {
 		# as opposed to a whole disk image to save time and space.
 		if [ "${PART_CNT}" -eq 1 ]; then
 			echo "Creating tarball"
-			tar cf "${DST_TAR}" -C "${TMP_DIR}"/ . || \
+			tar_args -cf "${DST_TAR}" -C "${TMP_DIR}"/ . || \
 			  err_exit "tar create ${TAR}"
 			# This two-step is needed, and repeated, because we want
 			# the .md5 file to not have any relative paths
