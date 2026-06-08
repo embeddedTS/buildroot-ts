@@ -252,10 +252,9 @@ dd_image() {
 
 		# Stream decompress the file through tee to our wc process above
 		# and then in to the actual write to disk process
-		# XXX: Consider replacing dd with cat or redirect and sync?
-		bsdcat "${SRC_DD}" | tee "${FIFO_DIR}"/fifo | \
-		  dd bs=4M of="${DST_DEV}" conv=fsync \
-		  || err_exit "${DST_DEV} dd write"
+		bsdcat "${SRC_DD}" | tee "${FIFO_DIR}"/fifo > "${DST_DEV}" || \
+		  err_exit "${DST_DEV} dd write"
+		sync
 		wait $WC_PID
 
 		MD5SUM="${SRC_DD%%.*}"
