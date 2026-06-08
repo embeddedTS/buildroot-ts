@@ -155,6 +155,9 @@ untar_image() {
 	echo "======= Writing ${HUMAN_NAME} filesystem ========"
 
 	(
+		# First, ensure the expected device is present
+		[ -b "${DST_DEV}" ] || err_exit "${DST_DEV} does not exist"
+
 		# shellcheck disable=SC3040
 		set -x -o pipefail
 
@@ -261,6 +264,9 @@ dd_image() {
 
 	echo "======= Writing ${HUMAN_NAME} disk image ========"
 	(
+		# First, ensure the expected device is present
+		[ -b "${DST_DEV}" ] || err_exit "${DST_DEV} does not exist"
+
 		# In order to save CPU and IO time on decompressing the source
 		# file twice, use some FIFO magic to get the length of the image
 		# while we are writing it to disk. This involves a couple of temp
