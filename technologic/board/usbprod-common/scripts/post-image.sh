@@ -74,11 +74,12 @@ rm -f "${TAR_PATH}"* "${IMG_PATH}"*
 
 # Create tarball output files
 tar cf "${TAR_DATE_PATH}.tar" -C "${TEMPDIR}" .
-xz -2 "${TAR_DATE_PATH}.tar"
-md5sum "${TAR_DATE_PATH}.tar.xz" > "${TAR_DATE_PATH}.tar.xz.md5"
+md5sum "${TAR_DATE_PATH}.tar" > "${TAR_DATE_PATH}.tar.md5"
 # Strip the file path off of the link in the .md5 file
-sed -i -e 's/\/.*\///' "${TAR_DATE_PATH}.tar.xz.md5"
+sed -i -e 's!/.*/!!' "${TAR_DATE_PATH}.tar.md5"
+xz -2 "${TAR_DATE_PATH}.tar"
 ln -sf "${TAR_BASE}-${DATE}.tar.xz" "${TAR_PATH}.tar.xz"
+ln -sf "${TAR_BASE}-${DATE}.tar.md5" "${TAR_PATH}.tar.md5"
 
 
 # Create output image
@@ -96,11 +97,12 @@ genimage \
 
 # Create output files
 mv "${IMG_PATH}.dd" "${IMG_DATE_PATH}.dd"
-xz -2 "${IMG_DATE_PATH}.dd"
-md5sum "${IMG_DATE_PATH}.dd.xz" > "${IMG_DATE_PATH}.dd.xz.md5"
+md5sum "${IMG_DATE_PATH}.dd" > "${IMG_DATE_PATH}.dd.md5"
 # Strip the file path off of the link in the .md5 file
-sed -i -e 's/\/.*\///' "${IMG_DATE_PATH}.dd.xz.md5"
+sed -i -e 's!/.*/!!' "${IMG_DATE_PATH}.dd.md5"
+xz -2 "${IMG_DATE_PATH}.dd"
 ln -sf "${IMG_BASE}-${DATE}.dd.xz" "${IMG_PATH}.dd.xz"
+ln -sf "${IMG_BASE}-${DATE}.dd.md5" "${IMG_PATH}.dd.md5"
 
 
 rm -r "${TEMPDIR}"
