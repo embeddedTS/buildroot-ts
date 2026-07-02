@@ -17,48 +17,18 @@ crit_exit() {
 	err_exit "${1}"
 }
 
-### Function to determine decompression to use based on name
-### This is because busybox tar does not seem to correctly decompress
-### arbitrary compression.
+### Function to create a unified tar experience
+### Modern filesystems and therefore tarballs of those filesystems can
+### have a lot of options that require features not present in the basic
+### busybox tar implementation. These options do not uniformly apply to both
+### creation and extraction, however, they are all safe to have for both
+### creation and exctraction.
 ###
-### Note that this depends on file extension rather than actually IDing the
-### file's magic and will not work correctly if file is mis-named!
-# Args
-# 1) Full or relative filename with extension
-# Returns command to use
-# Use
-# CMD=$(get_stream_decomp "/path/to/file.tar.bz2")
-# ${CMD} can then be used to stream decompress the file to stdout
-
-get_stream_decomp() {
-	FILE_PATH="${1}"
-
-
-	BASE=$(basename "${FILE_PATH}")
-	EXTENSION="${BASE##*.}"
-	case "${EXTENSION}" in
-		"bz2")
-			CMD="bzcat"
-			;;
-		"gz")
-			CMD="gunzip -c"
-			;;
-		# If extension isn't a compression extension, then just cat it
-		"tar"|"dd")
-			CMD="cat"
-			;;
-		"xz")
-			CMD="xzcat"
-			;;
-		"zst")
-			CMD="zstdcat"
-			;;
-		*)
-			err_exit "${FILE_PATH} unknown compression"
-			;;
-	esac
-
-	echo "${CMD}"
+### NOTE: Extraction should have -h to follow symlinks, creation should not
+### have -h to ensure symlinks are included in the tarball rather than the
+### real file/folder!
+tar_args() {
+	tar --xattrs --xattrs-include='*' --acls --selinux --numeric-owner --sparse "$@"
 }
 
 ### Function to get all option files from a directory and export them
@@ -155,6 +125,9 @@ untar_image() {
 	echo "======= Writing ${HUMAN_NAME} filesystem ========"
 
 	(
+		# First, ensure the expected device is present
+		[ -b "${DST_DEV}" ] || err_exit "${DST_DEV} does not exist"
+
 		# shellcheck disable=SC3040
 		set -x -o pipefail
 
@@ -221,10 +194,8 @@ untar_image() {
 		mount "$(get_diskpart_path "${DST_DEV}" 1)" "${DST_MOUNT}" || \
 		  err_exit "mount ${DST_DEV}"
 
-		# Get the correct command to stream decompress the tarball
-		# and run it
-		CMD=$(get_stream_decomp "${SRC_TARBALL}")
-		${CMD} "${SRC_TARBALL}" | tar -xh -C "${DST_MOUNT}" || \
+		# Unpack the tarball to the final partition location
+		tar_args -xhf "${SRC_TARBALL}" -C "${DST_MOUNT}" || \
 		  err_exit "untar ${DST_DEV}"
 
 		sync
@@ -261,6 +232,9 @@ dd_image() {
 
 	echo "======= Writing ${HUMAN_NAME} disk image ========"
 	(
+		# First, ensure the expected device is present
+		[ -b "${DST_DEV}" ] || err_exit "${DST_DEV} does not exist"
+
 		# In order to save CPU and IO time on decompressing the source
 		# file twice, use some FIFO magic to get the length of the image
 		# while we are writing it to disk. This involves a couple of temp
@@ -276,14 +250,11 @@ dd_image() {
 		mkfifo "${FIFO_DIR}"/fifo || err_exit "dd mkfifo"
 		wc -c < "${FIFO_DIR}"/fifo > "${BYTES_CNT_F}" & WC_PID=$!
 
-		# Get the correct command to stream decompress, then run the
-		# file through tee to our wc process above and then in to the
-		# dd process
-		# XXX: Consider replacing dd with cat or redirect and sync?
-		CMD=$(get_stream_decomp "${SRC_DD}")
-		${CMD} "${SRC_DD}" | tee "${FIFO_DIR}"/fifo | \
-		  dd bs=4M of="${DST_DEV}" conv=fsync \
-		  || err_exit "${DST_DEV} dd write"
+		# Stream decompress the file through tee to our wc process above
+		# and then in to the actual write to disk process
+		bsdcat "${SRC_DD}" | tee "${FIFO_DIR}"/fifo > "${DST_DEV}" || \
+		  err_exit "${DST_DEV} dd write"
+		sync
 		wait $WC_PID
 
 		MD5SUM="${SRC_DD%%.*}"
@@ -405,7 +376,8 @@ capture_img_or_tar_from_disk() {
 			# Copy source disk filesystem to our sparse file backed
 			# mount location. Use tar pipeline to ensure EVERY file
 			# property, permission, etc, is coped intact
-			tar -cf - -C "${TMP_SRC_DIR}"/ . | tar xh -C "${TMP_DIR}" \
+			tar_args -cf - -C "${TMP_SRC_DIR}"/ . | \
+			  tar_args -xh -C "${TMP_DIR}" \
 			  || err_exit "copy SRC contents to TMP DST"
 
 			# Unmount the SRC disk, we should no longer need this.
@@ -442,7 +414,7 @@ capture_img_or_tar_from_disk() {
 		# as opposed to a whole disk image to save time and space.
 		if [ "${PART_CNT}" -eq 1 ]; then
 			echo "Creating tarball"
-			tar cf "${DST_TAR}" -C "${TMP_DIR}"/ . || \
+			tar_args -cf "${DST_TAR}" -C "${TMP_DIR}"/ . || \
 			  err_exit "tar create ${TAR}"
 			# This two-step is needed, and repeated, because we want
 			# the .md5 file to not have any relative paths
