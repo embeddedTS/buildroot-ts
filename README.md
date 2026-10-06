@@ -221,7 +221,6 @@ When booted from a stock image, a shim script is used to install U-Boot over top
 This is not an issue for the most common use-case of writing custom images to devices. For example, a TS-7670 ordered from us will have eMMC pre-programmed with our stock image. It would be possible with the Image Replicator USB drive inserted, for the unit to boot, install a U-Boot bootloader to the eMMC flash, reboot itself, and start the Image Replicator process to write out full custom images to eMMC or to attached microSD cards. Image Capture of a stock image with this tool is difficult due to the process required to boot the Image Replicator. Please contact our [support team](https://support.embeddedts.com/support/home) for assistance if you need to run this process.
 
 ### tsimx6_defconfig
-**Note! See [#60](https://github.com/embeddedTS/buildroot-ts/issues/60) if using a platform with Silex Wi-Fi devices!**
 * Supports TS-4900, TS-7970, and TS-TPC-7990 devices
 * Generates a minimal Linux with hardware support
 * Outputs `rootfs.tar.xz` which can be written to any boot device for the platform: USB, eMMC, SATA, NFS, etc.
