@@ -7,6 +7,7 @@ usage() {
 	echo ""
 	echo "Usage:"
 	echo "./build-all-configs.sh [group]"
+	echo "./build-all-configs.sh clean"
 	echo ""
 	echo "[group] is one of:"
 	echo "  base    - Build only the base platform configs"
@@ -14,6 +15,7 @@ usage() {
 	echo "  usbprod - Build only the Image Replicator configs"
 	echo ""
 	echo "If no [group] is specified, all configurations will be built in parallel!"
+	echo "The clean command resets existing Buildroot outputs without building."
 	echo ""
 	exit 1;
 }
@@ -31,8 +33,52 @@ if [ $(id -u) -eq 0 ]; then
 	exit 1;
 fi
 
-if [ "$1" == "-h" ]; then
+COMMAND="build"
+if [ "${1:-}" == "clean" ]; then
+	COMMAND="clean"
+	shift
+fi
+
+if [ "${1:-}" == "-h" ] || [ "${1:-}" == "--help" ]; then
 	usage
+fi
+
+if [ "$#" -gt 1 ]; then
+	echo "Too many arguments"
+	usage
+fi
+
+TOPDIR="$(pwd)"
+
+if [ "${COMMAND}" == "clean" ]; then
+	shopt -s nullglob
+	OUTPUT_DIRS=(out/*/)
+
+	if [ ${#OUTPUT_DIRS[@]} -eq 0 ]; then
+		echo "No output directories found under out/"
+		exit 0
+	fi
+
+	CLEAN_PIDS=()
+	CLEAN_DIRS=()
+	for OUTPUT_DIR in "${OUTPUT_DIRS[@]}"; do
+		OUTPUT_DIR="${OUTPUT_DIR%/}"
+		echo "${OUTPUT_DIR}: CLEANING"
+		(
+			./buildroot/utils/docker-run make "O=${TOPDIR}/${OUTPUT_DIR}" clean >>"${OUTPUT_DIR}/log" 2>&1
+		) &
+		CLEAN_PIDS+=("$!")
+		CLEAN_DIRS+=("${OUTPUT_DIR}")
+	done
+
+	CLEAN_FAILED=0
+	for INDEX in "${!CLEAN_PIDS[@]}"; do
+		if ! wait "${CLEAN_PIDS[${INDEX}]}"; then
+			echo "${CLEAN_DIRS[${INDEX}]}: CLEAN FAILED"
+			CLEAN_FAILED=1
+		fi
+	done
+	exit "${CLEAN_FAILED}"
 fi
 
 # Build array of total builds
@@ -53,8 +99,8 @@ for CONFIG in technologic/configs/ts*; do
 	EXTRA+=("${CONFIG}")
 done
 
-# Build list of total configurations. If no args supplied, build all
-if [ $# -ne 1 ]; then
+# Build list of total configurations. If no group is supplied, build all.
+if [ $# -eq 0 ]; then
 	TOTAL=$((${#USBPROD[@]} + ${#BASE[@]} + ${#EXTRA[@]}))
 elif [ "$1" == "base" ]; then
 	echo "Building only base configurations!"
@@ -91,29 +137,39 @@ echo "A potential load of $((${PER_PROC}*${TOTAL})).00!"
 echo "Press ctrl+c to stop this within 10 seconds"
 sleep 10
 
-echo "Building docker container"
-docker build --quiet --tag "buildroot-buildenv-$(git rev-parse --short=12 HEAD)" docker/
 echo "Starting builds"
 
-unset DOCKER_PIDS
+BUILD_PIDS=()
+# docker-run keeps stdin open for the container. Redirect it before
+# backgrounding so Docker does not retain the terminal as a background job.
+start_build() {
+	local BOARD="$1"
+	local CONFIG_NAME="${BOARD}_defconfig"
+
+	echo "${CONFIG_NAME}: RUNNING"
+	(
+		if ./buildroot/utils/docker-run make "O=${TOPDIR}/out/${BOARD}" all </dev/null >>"out/${BOARD}/log" 2>&1; then
+			echo "${CONFIG_NAME}: COMPLETED"
+		else
+			echo "${CONFIG_NAME}: FAILED"
+			exit 1
+		fi
+	) &
+	BUILD_PIDS+=("$!")
+}
+
 for CONFIG in ${USBPROD[@]}; do
 	BOARD=${CONFIG%_*}
 	mkdir -p "out/${BOARD}"
 
 	# Set up config file
-	ARG="O=/work/out/${BOARD} ${CONFIG}"
-	DOCKER_PID=$(docker run --rm -it --volume $(pwd):/work -w /work -e HOME=/work --user $(id -u):$(id -g) "buildroot-buildenv-$(git rev-parse --short=12 HEAD)" bash -c "make ${ARG} >/work/out/"${BOARD}"/log 2>&1")
-	DOCKER_PIDS="${DOCKER_PID} ${DOCKER_PIDS}"
+	./buildroot/utils/docker-run make "O=${TOPDIR}/out/${BOARD}" "${CONFIG}" >"out/${BOARD}/log" 2>&1
 
 	# Modify the config file to use set number of CPUs max
-	ARG="./buildroot/utils/config --file /work/out/${BOARD}/.config --set-val BR2_JLEVEL ${PER_PROC}"
-	DOCKER_PID=$(docker run --rm -it --volume $(pwd):/work -w /work -e HOME=/work --user $(id -u):$(id -g) "buildroot-buildenv-$(git rev-parse --short=12 HEAD)" bash -c "${ARG} >/work/out/"${BOARD}"/log 2>&1")
-	DOCKER_PIDS="${DOCKER_PID} ${DOCKER_PIDS}"
+	./buildroot/utils/docker-run ./buildroot/utils/config --file "${TOPDIR}/out/${BOARD}/.config" --set-val BR2_JLEVEL "${PER_PROC}" >>"out/${BOARD}/log" 2>&1
 
 	# Start the build
-	ARG="O=/work/out/${BOARD} all"
-	DOCKER_PID=$(docker run -d --rm -it --volume $(pwd):/work -w /work -e HOME=/work --user $(id -u):$(id -g) "buildroot-buildenv-$(git rev-parse --short=12 HEAD)" bash -c "make ${ARG} >/work/out/"${BOARD}"/log 2>&1")
-	DOCKER_PIDS="${DOCKER_PID} ${DOCKER_PIDS}"
+	start_build "${BOARD}"
 done
 
 for CONFIG in ${BASE[@]}; do
@@ -121,19 +177,13 @@ for CONFIG in ${BASE[@]}; do
 	mkdir -p "out/${BOARD}"
 
 	# Set up config file
-	ARG="O=/work/out/${BOARD} ${CONFIG}"
-	DOCKER_PID=$(docker run --rm -it --volume $(pwd):/work -w /work -e HOME=/work --user $(id -u):$(id -g) "buildroot-buildenv-$(git rev-parse --short=12 HEAD)" bash -c "make ${ARG} >/work/out/"${BOARD}"/log 2>&1")
-	DOCKER_PIDS="${DOCKER_PID} ${DOCKER_PIDS}"
+	./buildroot/utils/docker-run make "O=${TOPDIR}/out/${BOARD}" "${CONFIG}" >"out/${BOARD}/log" 2>&1
 
 	# Modify the config file to use set number of CPUs max
-	ARG="./buildroot/utils/config --file /work/out/${BOARD}/.config --set-val BR2_JLEVEL ${PER_PROC}"
-	DOCKER_PID=$(docker run --rm -it --volume $(pwd):/work -w /work -e HOME=/work --user $(id -u):$(id -g) "buildroot-buildenv-$(git rev-parse --short=12 HEAD)" bash -c "${ARG} >/work/out/"${BOARD}"/log 2>&1")
-	DOCKER_PIDS="${DOCKER_PID} ${DOCKER_PIDS}"
+	./buildroot/utils/docker-run ./buildroot/utils/config --file "${TOPDIR}/out/${BOARD}/.config" --set-val BR2_JLEVEL "${PER_PROC}" >>"out/${BOARD}/log" 2>&1
 
 	# Start the build
-	ARG="O=/work/out/${BOARD} all"
-	DOCKER_PID=$(docker run -d --rm -it --volume $(pwd):/work -w /work -e HOME=/work --user $(id -u):$(id -g) "buildroot-buildenv-$(git rev-parse --short=12 HEAD)" bash -c "make ${ARG} >/work/out/"${BOARD}"/log 2>&1")
-	DOCKER_PIDS="${DOCKER_PID} ${DOCKER_PIDS}"
+	start_build "${BOARD}"
 done
 
 for CONFIG in ${EXTRA[@]}; do
@@ -142,19 +192,13 @@ for CONFIG in ${EXTRA[@]}; do
 	mkdir -p "out/${BOARD}"
 
 	# Make the merged defconfig
-	ARG="./buildroot/support/kconfig/merge_config.sh -O /work/out/${BOARD}/ technologic/configs/extra_packages_defconfig technologic/configs/${CONFIG}"
-	DOCKER_PID=$(docker run --rm -it --volume $(pwd):/work -w /work -e HOME=/work --user $(id -u):$(id -g) "buildroot-buildenv-$(git rev-parse --short=12 HEAD)" bash -c "${ARG} >/work/out/"${BOARD}"/log 2>&1")
-	DOCKER_PIDS="${DOCKER_PID} ${DOCKER_PIDS}"
+	./buildroot/utils/docker-run ./buildroot/support/kconfig/merge_config.sh -O "${TOPDIR}/out/${BOARD}/" technologic/configs/extra_packages_defconfig "technologic/configs/${CONFIG}" >"out/${BOARD}/log" 2>&1
 
 	# Modify the config file to use set number of CPUs max
-	ARG="./buildroot/utils/config --file /work/out/${BOARD}/.config --set-val BR2_JLEVEL ${PER_PROC}"
-	DOCKER_PID=$(docker run --rm -it --volume $(pwd):/work -w /work -e HOME=/work --user $(id -u):$(id -g) "buildroot-buildenv-$(git rev-parse --short=12 HEAD)" bash -c "${ARG} >/work/out/"${BOARD}"/log 2>&1")
-	DOCKER_PIDS="${DOCKER_PID} ${DOCKER_PIDS}"
+	./buildroot/utils/docker-run ./buildroot/utils/config --file "${TOPDIR}/out/${BOARD}/.config" --set-val BR2_JLEVEL "${PER_PROC}" >>"out/${BOARD}/log" 2>&1
 
 	# Start the build
-	ARG="O=/work/out/${BOARD} all"
-	DOCKER_PID=$(docker run -d --rm -it --volume $(pwd):/work -w /work -e HOME=/work --user $(id -u):$(id -g) "buildroot-buildenv-$(git rev-parse --short=12 HEAD)" bash -c "make ${ARG} >/work/out/"${BOARD}"/log 2>&1")
-	DOCKER_PIDS="${DOCKER_PID} ${DOCKER_PIDS}"
+	start_build "${BOARD}"
 done
 
 echo ""
@@ -162,14 +206,17 @@ echo ""
 echo ""
 echo "All builds running!"
 echo ""
-echo "Waiting until all containers/builds have completed"
+echo "Waiting until all builds have completed"
 echo ""
-echo "It is safe to ctrl+c out of this, builds are running in the background."
 echo "Logs for each build can be found in ./out/<CONFIG>/log"
-echo "All containers/builds can be stopped with 'docker kill \$(docker ps -q)'"
 echo ""
 echo ""
 echo ""
-docker wait ${DOCKER_PIDS}
+BUILD_FAILED=0
+for BUILD_PID in "${BUILD_PIDS[@]}"; do
+	if ! wait "${BUILD_PID}"; then
+		BUILD_FAILED=1
+	fi
+done
 
-
+exit "${BUILD_FAILED}"
