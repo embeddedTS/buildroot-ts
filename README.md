@@ -1,5 +1,5 @@
 # embeddedTS Buildroot
-This repository implements BR_EXTERNAL for embeddedTS products. Currently this includes support for:
+This repository is implemented as a BR2\_EXTERNAL based custom repository for embeddedTS products supporting Buildroot. Currently this includes support for:
 
 * TS-4100
 * TS-4300
@@ -19,7 +19,18 @@ This repository implements BR_EXTERNAL for embeddedTS products. Currently this i
 
 
 ## Getting Started
-This project implements a tagged release from upstream Buildroot as a submodule. This allows for this project to be used as it is to build whole Buildroot projects, or it can be integrated as a BR2_EXTERNAL directory for custom implementations.
+
+This project implements a tagged release from upstream Buildroot as a submodule. This allows for this project to be used as it is to build whole Buildroot projects, or it can be integrated as a BR2\_EXTERNAL directory for custom implementations.
+
+
+### Buildroot Manual
+
+Users should familiarize themselves with the main [Buildroot manual](https://buildroot.org/downloads/manual/manual.html) and build workflow. The Buildroot manual covers system requirements, build flows, and a quick start.
+
+This repoistory is configured as a BR2\_EXTERNAL tree that includes Buildroot as a submodule. The [Buildroot manual](https://buildroot.org/downloads/manual/manual.html) covers this concept in more detail.
+
+
+### Cloning this Repository and its Submodule
 
 The repository and the Buildroot submodule can all be cloned in a single command with:
 
@@ -45,6 +56,14 @@ This will output a Buildroot image built from the specified tag. The buildroot v
 	git submodule update --init
 
 We will update the Buildroot release tag used as time goes on, we will only push these updates to the repository once they have been tested by us to ensure compatibility.
+
+
+### Nested BR2\_EXTERNAL trees
+
+The BR2\_EXTERNAL tree can be nested. This repository can be included as a submodule in a different repository with additional customizations added on top. See the [Buildroot manual](https://buildroot.org/downloads/manual/manual.html#outside-br-custom) for more information on this, as well as our demo projects which nest this repository:
+
+- [TS-4100 Environmental Monitor Daughter Card](https://github.com/embeddedTS/ts4100-environ-dc)
+- [TS-7970 Grid-EYE Demo](https://github.com/embeddedTS/ts7970-grid-eye-demo)
 
 
 ## Build instructions
@@ -221,7 +240,6 @@ When booted from a stock image, a shim script is used to install U-Boot over top
 This is not an issue for the most common use-case of writing custom images to devices. For example, a TS-7670 ordered from us will have eMMC pre-programmed with our stock image. It would be possible with the Image Replicator USB drive inserted, for the unit to boot, install a U-Boot bootloader to the eMMC flash, reboot itself, and start the Image Replicator process to write out full custom images to eMMC or to attached microSD cards. Image Capture of a stock image with this tool is difficult due to the process required to boot the Image Replicator. Please contact our [support team](https://support.embeddedts.com/support/home) for assistance if you need to run this process.
 
 ### tsimx6_defconfig
-**Note! See [#60](https://github.com/embeddedTS/buildroot-ts/issues/60) if using a platform with Silex Wi-Fi devices!**
 * Supports TS-4900, TS-7970, and TS-TPC-7990 devices
 * Generates a minimal Linux with hardware support
 * Outputs `rootfs.tar.xz` which can be written to any boot device for the platform: USB, eMMC, SATA, NFS, etc.
@@ -231,7 +249,6 @@ Can be built with (See [Using Docker](#using-docker) for how to build in Docker 
 	make tsimx6_defconfig all
 
 ### tsimx6_graphical_defconfig
-**Note! See [#58](https://github.com/embeddedTS/buildroot-ts/issues/58) when building this configuration!**
 * Supports TS-4900, TS-7970, and TS-TPC-7990 devices
 * Generates an example image focused on showcasing the graphical abilities of the i.MX6 CPU
 * Boots to Weston with Wayland/Xwayland support and includes Weston/Wayland demos. Provides Qt5 demos utilizing OpenGLES with a Wayland wrapper taking advantage of the Vivante GPU. Provides a video player able to take advantage of VPU hardware.
@@ -296,31 +313,33 @@ Buildroot itself provides a script to merge and make the config file. Rather tha
 
 Simply substitute out the platform defconfig for other devices. Note that each defconfig provided to the script overrides any values set in the previous defconfig if they conflict. It is recommended to pass the extra_packages_defconfig before the device defconfig so any conflicts result in favoring the known base configuration file.
 
+
 ## Using Docker
-Optionally, this can be built in a Docker container. The container is maintained in lock-step with this project and the upstream Buildroot submodule. Meaning it is possible to go back to a specific commit in history and get a valid environment for building in via Docker.
+Optionally, configurations can be build inside of a Docker container. The container is maintained by Buildroot as part of their CI scripts, however, it can be used as a general purpose build environment as well.
 
-The container is implemented as a simple front-end script, any arguments passed to the script will be passed directly to the root `buildroot-ts/` directory inside of the container. The first time the script is run, it will build the container so this may take additional time.
+See the [Buildroot manual](https://buildroot.org/downloads/manual/manual.html#adding-board-support) for details on using their provided container for a customized Docker file if needed.
 
-The script itself launches the container and then runs any subsequent command-line commands and arguments inside the container itself. The script must prepend each new command to be run in the Docker container.
+The container is a script that can be directly entered, or, if arguments are passed to the script, they are run inside the container. The first time the script is run, it will build the container to this may take additional time.
+
+If nesting this repository as a submodule inside of another BR2\_EXTERNAL tree, the container can be called in the same way from the root of the top-level BR2\_EXTERNAL tree.
 
 For example, to use the TS-7250-V3 defconfig, open a menuconfig window, then start a build after saving any changes:
 
-    ./scripts/run_docker_buildroot.sh make ts7250v3_defconfig menuconfig all
+    ./buildroot/utils/docker-run make ts7250v3_defconfig menuconfig all
 
 Build the Image Replicator tool for a TS-4100/TS-7553-V2 with multiple commands:
 
-    ./scripts/run_docker_buildroot.sh make clean
-    ./scripts/run_docker_buildroot.sh make tsimx6ul_usbprod_defconfig
-    ./scripts/run_docker_buildroot.sh make
+    ./buildroot/utils/docker-run make clean
+    ./buildroot/utils/docker-run make tsimx6ul_usbprod_defconfig
+    ./buildroot/utils/docker-run make
 
 It is also possible to enter a shell inside of the container:
 
-    ./scripts/run_docker_buildroot.sh bash
+    ./buildroot/utils/docker-run
 
 From there, any commands issued would be issued inside of the container. See notes below for more details.
 
 ### Notes on using Docker
 
 * Choose building either from the host workstation or Docker container, it is not recommended to mix and match. Do a `make clean` from one build system in order to be able to cleanly switch to another. Switching between the two without `make clean` in between will likely cause build issues
-* The `pwd` is mapped to `/work/` inside the container, with `$HOME` being set to `/work/`. Any changes made inside of `/work/` will be retained, any changes to the rest of the container filesystem will be lost once the container is exited
-* Most of our configs have ccache enabled though Buildroot. Normally, this lies at `~/.buildroot-ccache`. Inside the container however, the `buildroot-ts/` directory is set to `$HOME`. If relying on ccache in Buildroot, be sure to continually use the same build system to prevent excessive work
+* The `pwd` is bind mounted to the same directory path inside the container, with `$HOME` being set to `/home/br-user/`. Any changes made inside of `pwd` in the container will be retained, any changes to the rest of the container filesystem will be lost once the container is exited
